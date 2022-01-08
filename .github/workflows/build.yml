@@ -32,9 +32,7 @@ jobs:
           zstdcat ./chillys-sega-devkit-20190504-opt.tar.zst | sudo tar -C / -xa
       - uses: actions/checkout@v2
       - name: make
-        run: |
-          dd if=/dev/zero bs=1K count=2324 of=doom32x.wad && \
-          make clean && make -f Makefile -j
+        run: make clean && make -f Makefile -j
       - name: readelf -S
         run: |
           /opt/toolchains/sega/sh-elf/bin/sh-elf-readelf -S yatssd.elf
