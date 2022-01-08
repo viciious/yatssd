@@ -1,0 +1,48 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/cache@v1
+        id: devkit-cache
+        with:
+          path: /opt/toolchains
+          key: chilly-willy-devkit-3
+      - name: Download The devkit archive
+        if: steps.devkit-cache.outputs.cache-hit != 'true'
+        run: | 
+          curl -sL --fail \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/repos/viciious/32XDK/releases/tags/20190504" \
+          | jq -r ".assets | .[] | select(.name | test(\"chillys-sega-devkit-20190504-opt.tar.zst$\")) | .url" \
+          | xargs curl -sL --fail -H "Accept: application/octet-stream" -o "chillys-sega-devkit-20190504-opt.tar.zst"
+      - name: Unpack the devkit archive
+        if: steps.devkit-cache.outputs.cache-hit != 'true'
+        run: |
+          ls -la ./chillys-sega-devkit-20190504-opt.tar.zst && \
+          zstdcat ./chillys-sega-devkit-20190504-opt.tar.zst | sudo tar -C / -xa
+      - uses: actions/checkout@v2
+      - name: make
+        run: |
+          dd if=/dev/zero bs=1K count=2324 of=doom32x.wad && \
+          make clean && make -f Makefile -j
+      - name: readelf -S
+        run: |
+          /opt/toolchains/sega/sh-elf/bin/sh-elf-readelf -S yatssd.elf
+      - name: Print sizes
+        run: nm --print-size --size-sort --radix=d yatssd.elf | egrep -Ei ' (B|D) ' | tail -n 50
+      - name: Archive ROM
+        uses: actions/upload-artifact@v2
+        with:
+          name: 32X ROM File
+          path: |
+            yatssd.32x
