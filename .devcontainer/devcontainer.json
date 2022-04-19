@@ -13,8 +13,10 @@
 	"settings": {},
 
 
-	// Add the IDs of extensions you want installed when the container is created.
-	"extensions": [],
+	// Add the IDs of extensions you want installed when the container is created in the array below.
+	"extensions": [
+		"ms-vscode.cpptools"
+	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
@@ -26,10 +28,5 @@
 	"remoteUser": "vscode",
 	"features": {
 		"git": "os-provided"
-	}
-
-	// Add the IDs of extensions you want installed when the container is created in the array below.
-	"extensions": [
-		"ms-vscode.cpptools"
 	}
 }
