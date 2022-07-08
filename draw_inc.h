@@ -350,7 +350,7 @@ void DFUNC(_sprite8_flip1)(DUINT* fb, drawsprcmd_t* cmd)
             }
 #undef DO_PIXEL
 
-            td[-hw - 1] = ts[hw - 1];
+            td[-hw + 1] = ts[hw - 1];
             ts += hsw;
             td += hdw;
         }
