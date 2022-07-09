@@ -1,4 +1,5 @@
-unsigned char palette[] __attribute__((aligned(16))) = {
+#include <stdint.h>
+const uint8_t palette[] __attribute__((aligned(16))) = {
 0x65,0x65,0x65,
 0xd4,0xed,0xfc,
 0x98,0xe5,0xfe,
@@ -256,3 +257,4 @@ unsigned char palette[] __attribute__((aligned(16))) = {
 0xe8,0xe8,0xe8,
 0xff,0xff,0xff,
 };
+

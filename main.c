@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdint.h>
 #include "32x.h"
 #include "hw_32x.h"
 #include "sound.h"
@@ -90,9 +91,6 @@ float fcamera_x, fcamera_y;
 float fmoveinc_x = 1.0, fmoveinc_y = 1.0;
 
 uint16_t canvas_rebuild_id;
-
-int tiles_hor = 259;
-int tiles_ver = 24;
 
 int nodraw = 0;
 int debug = 0;
@@ -288,7 +286,7 @@ int main(void)
 
     Hw32xScreenFlip(0);
 
-    init_tilemap(&tm, 16, 16, tiles_hor, tiles_ver, tmx, sizeof(tmx)/sizeof(tmx[0]));
+    init_tilemap(&tm, tmx.tilew, tmx.tileh, tmx.numtw, tmx.numth, (const uint16_t **)tmx.layers, tmx.numlayers);
 
     while (1) {
         int starttics;

@@ -34,7 +34,7 @@ typedef struct {
 
     int numlayers;
     int numtiles;
-    uint16_t** tmx;
+    uint16_t** layers;
 
     int tiles_hor, tiles_ver;
     int canvas_tiles_hor, canvas_tiles_ver;

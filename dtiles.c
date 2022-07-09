@@ -6,12 +6,12 @@
 
 drawtilelayerscmd_t slave_drawtilelayerscmd;
 
-void init_tilemap(tilemap_t *tm, int tw, int th, int numh, int numv, const uint16_t **tmx, int nl)
+void init_tilemap(tilemap_t *tm, int tw, int th, int numh, int numv, const uint16_t **l, int nl)
 {
     tm->tw = tw;
     tm->th = th;
 
-    tm->tmx = (uint16_t **)tmx;
+    tm->layers = (uint16_t **)l;
     tm->numlayers = nl;
 
     tm->tiles_hor = numh;
@@ -123,16 +123,16 @@ void draw_tile_layer(drawtilelayerscmd_t *cmd)
     int scroll_tile_id = cmd->scroll_tile_id;
     int num_tiles_x = cmd->num_tiles_x;
     int drawmode = cmd->drawmode;
-    void* fb = (void*)((uint16_t*)(drawmode & DRAWSPR_OVERWRITE ? &MARS_OVERWRITE_IMG : &MARS_FRAMEBUFFER) + 0x100);
     draw_spritefn_t fn = draw_spritefn(drawmode);
     int drawcnt = 0;
 
     if (end_tile >= tm->numtiles)
         end_tile = tm->numtiles - 1;
 
-    for (l = 0; l < tm->numlayers; l++)
+    for (l = 0; l < /*tm->numlayers*/1; l++)
     {
-        const uint16_t* layer = tm->tmx[l];
+        const uint16_t* layer = tm->layers[l];
+        void* fb = (void*)((uint16_t*)(drawmode & DRAWSPR_OVERWRITE ? &MARS_OVERWRITE_IMG : &MARS_FRAMEBUFFER) + 0x100);
 
         y = yy;
         for (y_tile = start_tile; y_tile <= end_tile; y_tile += tm->tiles_hor)
