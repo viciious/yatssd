@@ -7,8 +7,6 @@
 #include "pal.h"
 #include "tiles.h"
 
-// Slave SH2 support code ----------------------------------------------
-#if 1
 uint8_t test32x32_trans_smileData[] __attribute__((aligned(16))) =
 {
     00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,
@@ -80,7 +78,6 @@ uint8_t test32x32_solid_smileData[] __attribute__((aligned(16))) =
     05,05,05,05,05,05,05,05,05,02,02,02,03,03,03,03,03,03,03,02,02,02,05,05,05,05,05,05,05,05,05,05,
     05,05,05,05,05,05,05,05,05,05,05,05,02,02,02,02,02,02,02,05,05,05,05,05,05,05,05,05,05,05,05,05,
 };
-#endif
 
 extern drawsprcmd_t slave_drawsprcmd;
 extern drawspr4cmd_t slave_drawspr4cmd;
@@ -88,6 +85,9 @@ extern drawtilelayerscmd_t slave_drawtilelayerscmd;
 
 int old_camera_x, old_camera_y;
 int camera_x, camera_y;
+
+float fcamera_x, fcamera_y;
+float fmoveinc_x = 1.0, fmoveinc_y = 1.0;
 
 uint16_t canvas_rebuild_id;
 
@@ -279,6 +279,7 @@ int main(void)
 
     totaltics = 0;
 
+    fcamera_x = fcamera_y = 0;
     camera_x = camera_y = 0;
 
     canvas_rebuild_id = 1;
@@ -292,7 +293,6 @@ int main(void)
     while (1) {
         int starttics;
         int waittics;
-        const int movinc = 1;
 
         starttics = Hw32xGetTicks();
 
@@ -310,21 +310,32 @@ int main(void)
         buttons = MARS_SYS_COMM8;
         int newbuttons = (buttons ^ oldbuttons) & buttons;
 
-        {
-            if (MARS_SYS_COMM8 & SEGA_CTRL_RIGHT) {
-                camera_x += movinc;
-            }
-            else if (MARS_SYS_COMM8 & SEGA_CTRL_LEFT) {
-                camera_x -= movinc;
-            }
-
-            if (MARS_SYS_COMM8 & SEGA_CTRL_DOWN) {
-                camera_y += movinc;
-            }
-            else if (MARS_SYS_COMM8 & SEGA_CTRL_UP) {
-                camera_y -= movinc;
-            }
+        if (MARS_SYS_COMM8 & SEGA_CTRL_RIGHT) {
+            fcamera_x += fmoveinc_x;
         }
+        else if (MARS_SYS_COMM8 & SEGA_CTRL_LEFT) {
+            fcamera_x -= fmoveinc_x;
+        }
+
+        if (MARS_SYS_COMM8 & SEGA_CTRL_DOWN) {
+            fcamera_y += fmoveinc_x;
+        }
+        else if (MARS_SYS_COMM8 & SEGA_CTRL_UP) {
+            fcamera_y -= fmoveinc_x;
+        }
+
+        if (fcamera_x < 0)
+            fcamera_x = 0;
+        if (fcamera_x > tm.tiles_hor * tm.tw - canvas_width)
+            fcamera_x = tm.tiles_hor * tm.tw - canvas_width;
+
+        if (fcamera_y < 0)
+            fcamera_y = 0;
+        if (fcamera_y > tm.tiles_ver * tm.th - canvas_height)
+            fcamera_y = tm.tiles_ver * tm.th - canvas_height;
+
+        camera_x = (int)fcamera_x;
+        camera_y = (int)fcamera_y;
 
         if (newbuttons & SEGA_CTRL_B)
         {
@@ -338,16 +349,6 @@ int main(void)
             if (sprmode == 8)
                 sprmode = -1;
         }
-
-        if (camera_x < 0)
-            camera_x = 0;
-        if (camera_x > tm.tiles_hor * tm.tw - canvas_width)
-            camera_x = tm.tiles_hor * tm.tw - canvas_width;
-
-        if (camera_y < 0)
-            camera_y = 0;
-        if (camera_y > tm.tiles_ver * tm.th - canvas_height)
-            camera_y = tm.tiles_ver * tm.th - canvas_height;
 
         Hw32xFlipWait();
 
