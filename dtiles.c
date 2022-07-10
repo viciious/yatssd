@@ -147,15 +147,19 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
             int tile;
             int t1 = y_tile;
             int t2 = y_tile + num_tiles_x;
+            if (t2 >= end_tile)
+                t2 = end_tile;
 
             id = stid;
             x = xx;
+
             for (tile = t1; tile <= t2; tile++)
             {
                 uint16_t idx = layer[tile];
                 if (idx != 0)
                 {
                     uint8_t* res = reslist[idx - 1];
+                    //if (debug) res = reslist[0];
                     draw_sprite(x, y, w, h, res, drawmode, 1);
                     drawcnt++;
                 }
@@ -186,6 +190,8 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
             int tile;
             int t1 = y_tile;
             int t2 = y_tile + num_tiles_x;
+            if (t2 >= end_tile)
+                t2 = end_tile;
 
             id = stid;
             x = xx;
@@ -230,7 +236,6 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
 
     camera_x = FixedMul(fpcamera_x, plx[0])>>16;
     camera_y = FixedMul(fpcamera_y, plx[1])>>16;
-
 
     if (camera_x < 0)
     {
