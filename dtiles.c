@@ -231,16 +231,6 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
     camera_x = FixedMul(fpcamera_x, plx[0])>>16;
     camera_y = FixedMul(fpcamera_y, plx[1])>>16;
 
-    if (layer == 0)
-    {
-        main_camera_x = camera_x;
-        main_camera_y = camera_y;
-    }
-    else
-    {
-        //camera_x -= (old_camera_x & 1);
-        //camera_x += (main_camera_x & 1) ^ 1;
-    }
 
     if (camera_x < 0)
     {
@@ -262,6 +252,12 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
     {
         camera_y = tm->tiles_ver * tm->th - canvas_height;
         clipped |= 8;
+    }
+
+    if (layer == 0)
+    {
+        main_camera_x = camera_x;
+        main_camera_y = camera_y;
     }
 
     int scroll_tiles_hor = tm->scroll_tiles_hor;
@@ -319,10 +315,6 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
     {
         window_canvas_x = scroll_x;
         window_canvas_y = scroll_y;
-    }
-    else
-    {
-        
     }
 
     if (layer == 0)

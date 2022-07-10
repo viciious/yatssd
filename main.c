@@ -213,7 +213,7 @@ int display(int framecount, int hudenable, int fpscount, int totaltics, int clea
 
     switch (hudenable) {
     case 1:
-        Hw32xScreenPrintf("fps:%02d %03d ms:%02d", fpcamera_x>>16, maxdrawcnt, Mars_FRTCounter2Msec(total));
+        Hw32xScreenPrintf("fps:%02d %03d ms:%02d", fpscount, maxdrawcnt, Mars_FRTCounter2Msec(total));
         break;
     default:
         break;
