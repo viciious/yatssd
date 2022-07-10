@@ -6,13 +6,22 @@
 
 drawtilelayerscmd_t slave_drawtilelayerscmd;
 
-void init_tilemap(tilemap_t *tm, int tw, int th, int numh, int numv, const uint16_t **l, int nl)
+static int old_camera_x, old_camera_y;
+static int main_camera_x, main_camera_y;
+
+static int camera_x, camera_y;
+
+static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamera_y, int numlayers, int *pclipped)
+ATTR_DATA_ALIGNED;
+
+void init_tilemap(tilemap_t *tm, int tw, int th, int numh, int numv, const uint16_t **l, int nl, const int *lplx)
 {
     tm->tw = tw;
     tm->th = th;
 
     tm->layers = (uint16_t **)l;
     tm->numlayers = nl;
+    tm->lplx = (int *)lplx;
 
     tm->tiles_hor = numh;
     tm->tiles_ver = numv;
@@ -107,32 +116,29 @@ static int draw_drawtile(int x, int y, int w, int h,
     return 1;
 }
 
-void draw_tile_layer(drawtilelayerscmd_t *cmd)
+void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
 {
     int l;
     int x, y;
     tilemap_t* tm = cmd->tm;
-    int w = tm->tw, h = tm->th;
-    int y_tile;
+    const int w = tm->tw, h = tm->th;
     uint16_t* extrafb = (uint16_t*)&MARS_FRAMEBUFFER + 0x100 + ((canvas_pitch * canvas_yaw) >> 1);
     uint16_t* dirty = extrafb + 3;
-    int scroll_y = camera_y;
-    int canvas_tiles_hor = tm->canvas_tiles_hor;
-    int xx = cmd->x, yy = cmd->y;
-    int start_tile = cmd->start_tile, end_tile = cmd->end_tile;
-    int scroll_tile_id = cmd->scroll_tile_id;
-    int num_tiles_x = cmd->num_tiles_x;
+    const int scroll_y = cmd->camera_y;
+    const int canvas_tiles_hor = tm->canvas_tiles_hor;
+    const int xx = cmd->x, yy = cmd->y;
+    const int start_tile = cmd->start_tile, end_tile = cmd->end_tile;
+    const int scroll_tile_id = cmd->scroll_tile_id;
+    const int num_tiles_x = cmd->num_tiles_x;
     int drawmode = cmd->drawmode;
     draw_spritefn_t fn = draw_spritefn(drawmode);
     int drawcnt = 0;
 
-    if (end_tile >= tm->numtiles)
-        end_tile = tm->numtiles - 1;
-
-    for (l = 0; l < /*tm->numlayers*/1; l++)
+    if (cmd->startlayer != 0)
     {
-        const uint16_t* layer = tm->layers[l];
-        void* fb = (void*)((uint16_t*)(drawmode & DRAWSPR_OVERWRITE ? &MARS_OVERWRITE_IMG : &MARS_FRAMEBUFFER) + 0x100);
+        const uint16_t* layer = tm->layers[cmd->startlayer];
+        int y_tile;
+        int stid = scroll_tile_id;
 
         y = yy;
         for (y_tile = start_tile; y_tile <= end_tile; y_tile += tm->tiles_hor)
@@ -142,7 +148,46 @@ void draw_tile_layer(drawtilelayerscmd_t *cmd)
             int t1 = y_tile;
             int t2 = y_tile + num_tiles_x;
 
-            id = scroll_tile_id;
+            id = stid;
+            x = xx;
+            for (tile = t1; tile <= t2; tile++)
+            {
+                uint16_t idx = layer[tile];
+                if (idx != 0)
+                {
+                    uint8_t* res = reslist[idx - 1];
+                    draw_sprite(x, y, w, h, res, drawmode, 1);
+                    drawcnt++;
+                }
+                id++;
+                x += w;
+            }
+
+            y += h;
+            stid += canvas_tiles_hor;
+            if (y >= yy + scroll_y + canvas_height)
+                break;
+        }
+        cmd->drawcnt = drawcnt;
+        return;
+    }
+
+    for (l = 0; l < cmd->numlayers; l++)
+    {
+        void* fb = (void*)((uint16_t*)(drawmode & DRAWSPR_OVERWRITE ? &MARS_OVERWRITE_IMG : &MARS_FRAMEBUFFER) + 0x100);
+        const uint16_t* layer = tm->layers[cmd->startlayer+l];
+        int y_tile;
+        int stid = scroll_tile_id;
+
+        y = yy;
+        for (y_tile = start_tile; y_tile <= end_tile; y_tile += tm->tiles_hor)
+        {
+            int id;
+            int tile;
+            int t1 = y_tile;
+            int t2 = y_tile + num_tiles_x;
+
+            id = stid;
             x = xx;
             for (tile = t1; tile <= t2; tile++)
             {
@@ -164,23 +209,60 @@ void draw_tile_layer(drawtilelayerscmd_t *cmd)
             }
 
             y += h;
-            scroll_tile_id += canvas_tiles_hor;
+            stid += canvas_tiles_hor;
             if (y >= yy + scroll_y + canvas_height)
                 break;
         }
 
-        drawmode |= DRAWSPR_OVERWRITE;
+        drawmode |= DRAWSPR_PRECISE|DRAWSPR_OVERWRITE;
+        layer++;
     }
 
     cmd->drawcnt = drawcnt;
 }
 
-int draw_tilemap(tilemap_t *tm)
+static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamera_y, int numlayers, int *pclipped)
 {
     int x, y;
     int w = tm->tw, h = tm->th;
-    int drawmode = 0;
-    uint16_t* extrafb = (uint16_t*)&MARS_FRAMEBUFFER + 0x100 + ((canvas_pitch * canvas_yaw) >> 1);
+    int *plx = &tm->lplx[layer];
+    int clipped = 0;
+
+    camera_x = FixedMul(fpcamera_x, plx[0])>>16;
+    camera_y = FixedMul(fpcamera_y, plx[1])>>16;
+
+    if (layer == 0)
+    {
+        main_camera_x = camera_x;
+        main_camera_y = camera_y;
+    }
+    else
+    {
+        //camera_x -= (old_camera_x & 1);
+        //camera_x += (main_camera_x & 1) ^ 1;
+    }
+
+    if (camera_x < 0)
+    {
+        camera_x = 0;
+        clipped |= 1;
+    }
+    if (camera_x > tm->tiles_hor * tm->tw - canvas_width)
+    {
+        camera_x = tm->tiles_hor * tm->tw - canvas_width;
+        clipped |= 2;
+    }
+
+    if (camera_y < 0)
+    {
+        camera_y = 0;
+        clipped |= 4;
+    }
+    if (camera_y > tm->tiles_ver * tm->th - canvas_height)
+    {
+        camera_y = tm->tiles_ver * tm->th - canvas_height;
+        clipped |= 8;
+    }
 
     int scroll_tiles_hor = tm->scroll_tiles_hor;
     int scroll_interval_hor = tm->scroll_interval_hor;
@@ -214,45 +296,63 @@ int draw_tilemap(tilemap_t *tm)
 
     int start_tile = start_tile_ver * tiles_hor + start_tile_hor;
     int end_tile = end_tile_ver * tiles_hor + end_tile_hor;
+    if (end_tile >= tm->numtiles)
+        end_tile = tm->numtiles - 1;
 
     int top_scroll_tile_hor = scroll_tiles_hor * scroll_count_hor;
     int top_scroll_tile_ver = scroll_tiles_ver * scroll_count_ver;
 
-    int scroll_x = camera_x - scroll_count_hor * scroll_interval_hor;
-    int scroll_y = camera_y - scroll_count_ver * scroll_interval_ver;
-
-    window_canvas_x = scroll_x;
-    window_canvas_y = scroll_y;
-    MARS_VDP_SHIFTREG = old_camera_x;
-
     int canvas_tiles_hor = tm->canvas_tiles_hor;
     int canvas_tiles_ver = tm->canvas_tiles_ver;
 
-    int xx = ((start_tile_hor - top_scroll_tile_hor) * w) - scroll_x;
-    int yy = -(scroll_y & (h - 1));
+    int scroll_x, scroll_y;
 
-    uint16_t *dirty = extrafb + 3;
+    int xx, yy;
 
-    int16_t scrollwords = (scroll_x + (scroll_y * canvas_pitch)) >> 1;
-    if (scrollwords != MARS_FRAMEBUFFER - 0x100)
+    scroll_x = camera_x - scroll_count_hor * scroll_interval_hor;
+    scroll_y = camera_y - scroll_count_ver * scroll_interval_ver;
+
+    xx = ((start_tile_hor - top_scroll_tile_hor) * w) - scroll_x;
+    yy = -(scroll_y & (h - 1));
+
+    if (layer == 0)
     {
-        Hw32xUpdateLineTable(scroll_x >> 1, scroll_y, 0);
+        window_canvas_x = scroll_x;
+        window_canvas_y = scroll_y;
+    }
+    else
+    {
+        
     }
 
-    if (canvas_rebuild_id != *extrafb)
+    if (layer == 0)
     {
-        uint16_t* p = dirty;
+        uint16_t* extrafb = (uint16_t*)&MARS_FRAMEBUFFER + 0x100 + ((canvas_pitch * canvas_yaw) >> 1);
+        uint16_t *dirty = extrafb + 3;
 
-        // mark all tiles as dirty
-        for (y = 0; y < canvas_tiles_ver; y++) {
-            for (x = 0; x < canvas_tiles_hor; x++) {
-                *p++ = UINT16_MAX;
-            }
+        MARS_VDP_SHIFTREG = old_camera_x;
+
+        int16_t scrollwords = (scroll_x + (scroll_y * canvas_pitch)) >> 1;        
+        if (scrollwords != MARS_FRAMEBUFFER - 0x100)
+        {
+            Hw32xUpdateLineTable(scroll_x >> 1, scroll_y, 0);
         }
 
-        *extrafb = canvas_rebuild_id;
+        if (canvas_rebuild_id != *extrafb)
+        {
+            uint16_t* p = dirty;
+
+            // mark all tiles as dirty
+            for (y = 0; y < canvas_tiles_ver; y++) {
+                for (x = 0; x < canvas_tiles_hor; x++) {
+                    *p++ = UINT16_MAX;
+                }
+            }
+
+            *extrafb = canvas_rebuild_id;
+        }
     }
- 
+
     drawtilelayerscmd_t cmd, *scmd = &slave_drawtilelayerscmd;
     cmd.tm = tm;
     cmd.x = xx;
@@ -261,7 +361,14 @@ int draw_tilemap(tilemap_t *tm)
     cmd.end_tile = end_tile;
     cmd.scroll_tile_id = (start_tile_ver - top_scroll_tile_ver) * canvas_tiles_hor + (start_tile_hor - top_scroll_tile_hor);
     cmd.num_tiles_x = half_tiles_hor;
-    cmd.drawmode = drawmode;
+    cmd.startlayer = layer;
+    cmd.numlayers = numlayers;
+    cmd.camera_x = camera_x, cmd.camera_y = camera_y;
+    if (layer == 0) {
+        cmd.drawmode = 0;
+    } else{
+        cmd.drawmode = DRAWSPR_PRECISE|DRAWSPR_OVERWRITE;
+    }
 
     scmd->tm = tm;
     scmd->x = xx + half_tiles_hor * w;
@@ -270,16 +377,44 @@ int draw_tilemap(tilemap_t *tm)
     scmd->end_tile = end_tile;
     scmd->scroll_tile_id = cmd.scroll_tile_id + half_tiles_hor;
     scmd->num_tiles_x = half_tiles_hor;
-    scmd->drawmode = drawmode;
+    scmd->startlayer = layer;
+    scmd->numlayers = numlayers;
+    scmd->camera_x = camera_x, scmd->camera_y = camera_y;
+    if (layer == 0) {
+        scmd->drawmode = 0;
+    } else{
+        scmd->drawmode = DRAWSPR_PRECISE|DRAWSPR_OVERWRITE;
+    }
 
     while (MARS_SYS_COMM4 != 0) {}
     MARS_SYS_COMM4 = 5;
 
-    draw_tile_layer(&cmd);
+    draw_handle_layercmd(&cmd);
 
     while (MARS_SYS_COMM4 != 0) {}
 
     ClearCacheLines(&scmd->drawcnt, 1);
 
+    *pclipped = clipped;
     return cmd.drawcnt + scmd->drawcnt;
+}
+
+int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip)
+{
+    int i;
+    int clip, drawcnt;
+    char parallax = 1;
+
+    *cameraclip = 0;
+    old_camera_x = main_camera_x;
+    old_camera_y = main_camera_y;
+
+    if (!parallax)
+        return draw_tile_layer(tm, 0, fpcamera_x, fpcamera_y, tm->numlayers, cameraclip);
+
+    drawcnt = draw_tile_layer(tm, 0, fpcamera_x, fpcamera_y, 1, cameraclip);
+    for (i = 1; i < tm->numlayers; i++)
+        drawcnt += draw_tile_layer(tm, i, fpcamera_x, fpcamera_y, 1, &clip);
+
+    return drawcnt;
 }

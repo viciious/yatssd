@@ -27,7 +27,11 @@ static int draw_clipsprite(int x, int y, int w, int h, int sw, int sh,
     y += ct;
     w -= cr + cl;
     h -= cb + ct;
-    hh = h >> 1;
+
+    if (flags & DRAWSPR_MULTICORE)
+        hh = h >> 1;
+    else
+        hh = h;
 
     if (flags & DRAWSPR_PRECISE) {
         if (!(x & 1) && !(w & 1) && !(flags & DRAWSPR_SCALE)) {
@@ -95,18 +99,21 @@ static int draw_clipsprite(int x, int y, int w, int h, int sw, int sh,
     cmd.sdata = (void*)data;
     cmd.scale = scale;
 
-    while (MARS_SYS_COMM4 != 0) {}
+    if (h > hh)
+    {
+        while (MARS_SYS_COMM4 != 0) {}
 
-    scmd = &slave_drawsprcmd;
-    scmd->flags = flags;
-    scmd->x = x, scmd->y = y + hh;
-    scmd->w = w, scmd->h = h - hh;
-    scmd->sx = sx, scmd->sy = sy2;
-    scmd->sw = sw, scmd->sh = sh;
-    scmd->sdata = (void*)data;
-    scmd->scale = scale;
+        scmd = &slave_drawsprcmd;
+        scmd->flags = flags;
+        scmd->x = x, scmd->y = y + hh;
+        scmd->w = w, scmd->h = h - hh;
+        scmd->sx = sx, scmd->sy = sy2;
+        scmd->sw = sw, scmd->sh = sh;
+        scmd->sdata = (void*)data;
+        scmd->scale = scale;
 
-    MARS_SYS_COMM4 = 3;
+        MARS_SYS_COMM4 = 3;
+    }
 
     draw_handle_drawspritecmd(&cmd);
 

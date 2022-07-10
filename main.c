@@ -84,11 +84,8 @@ extern drawsprcmd_t slave_drawsprcmd;
 extern drawspr4cmd_t slave_drawspr4cmd;
 extern drawtilelayerscmd_t slave_drawtilelayerscmd;
 
-int old_camera_x, old_camera_y;
-int camera_x, camera_y;
-
-float fcamera_x, fcamera_y;
-float fmoveinc_x = 1.0, fmoveinc_y = 1.0;
+int fpcamera_x, fpcamera_y;
+int fpmoveinc_x = 1<<16, fpmoveinc_y = 1<<16; // in 16.16 fixed point
 
 uint16_t canvas_rebuild_id;
 
@@ -142,16 +139,11 @@ int slave_task(int cmd)
         ClearCacheLines((uintptr_t)&canvas_height & ~15, 1);
         ClearCacheLines((uintptr_t)&window_canvas_x & ~15, 1);
         ClearCacheLines((uintptr_t)&window_canvas_y & ~15, 1);
-        ClearCacheLines((uintptr_t)&old_camera_x & ~15, 1);
-        ClearCacheLines((uintptr_t)&old_camera_x & ~15, 1);
         ClearCacheLines((uintptr_t)&canvas_pitch & ~15, 1);
-        ClearCacheLines((uintptr_t)&canvas_yaw & ~15, 1);
-        ClearCacheLines((uintptr_t)&camera_x & ~15, 1);
-        ClearCacheLines((uintptr_t)&camera_y & ~15, 1);
         ClearCacheLines((uintptr_t)&nodraw & ~15, 1);
         ClearCacheLines(&slave_drawtilelayerscmd, (sizeof(drawtilelayerscmd_t) + 15) / 16);
         ClearCacheLines(&tm, (sizeof(tilemap_t) + 15) / 16);
-        draw_tile_layer(&slave_drawtilelayerscmd);
+        draw_handle_layercmd(&slave_drawtilelayerscmd);
         return 1;
     default:
         break;
@@ -176,11 +168,12 @@ void secondary(void)
     }
 }
 
-void display(int framecount, int hudenable, int fpscount, int totaltics, int clearhud)
+int display(int framecount, int hudenable, int fpscount, int totaltics, int clearhud)
 {
     int i, j;
     int start = Mars_GetFRTCounter(), total;
     int drawcnt = 0;
+    int cameraclip = 0;
     static int prevsec;
     static int maxdrawcnt;
 
@@ -192,7 +185,7 @@ void display(int framecount, int hudenable, int fpscount, int totaltics, int cle
 
     draw_setScissor(0, 0, 320, 224);
 
-    drawcnt = draw_tilemap(&tm);
+    drawcnt = draw_tilemap(&tm, fpcamera_x, fpcamera_y, &cameraclip);
     if (drawcnt > maxdrawcnt)
     {
         maxdrawcnt = drawcnt;
@@ -203,7 +196,7 @@ void display(int framecount, int hudenable, int fpscount, int totaltics, int cle
 
     if (sprmode >= 0)
     {
-        int mode = DRAWSPR_OVERWRITE;
+        int mode = DRAWSPR_OVERWRITE|DRAWSPR_MULTICORE;
         if (sprmode < 3)
             mode |= sprmode | DRAWSPR_PRECISE;
         else
@@ -220,11 +213,13 @@ void display(int framecount, int hudenable, int fpscount, int totaltics, int cle
 
     switch (hudenable) {
     case 1:
-        Hw32xScreenPrintf("fps:%02d %03d ms:%02d", fpscount, maxdrawcnt, Mars_FRTCounter2Msec(total));
+        Hw32xScreenPrintf("fps:%02d %03d ms:%02d", fpcamera_x>>16, maxdrawcnt, Mars_FRTCounter2Msec(total));
         break;
     default:
         break;
     }
+
+    return cameraclip;
 }
 
 int main(void)
@@ -277,8 +272,7 @@ int main(void)
 
     totaltics = 0;
 
-    fcamera_x = fcamera_y = 0;
-    camera_x = camera_y = 0;
+    fpcamera_x = fpcamera_y = 0;
 
     canvas_rebuild_id = 1;
 
@@ -286,11 +280,14 @@ int main(void)
 
     Hw32xScreenFlip(0);
 
-    init_tilemap(&tm, tmx.tilew, tmx.tileh, tmx.numtw, tmx.numth, (const uint16_t **)tmx.layers, tmx.numlayers);
+    init_tilemap(&tm, tmx.tilew, tmx.tileh, tmx.numtw, tmx.numth, 
+        (const uint16_t **)tmx.layers, tmx.numlayers, (const int *)tmx.layerplx);
 
     while (1) {
         int starttics;
         int waittics;
+        int clip;
+        int old_fpcamera_x, old_fpcamera_y;
 
         starttics = Hw32xGetTicks();
 
@@ -301,40 +298,30 @@ int main(void)
             prevsecframe = framecount;
         }
 
-        old_camera_x = camera_x;
-        old_camera_y = camera_y;
-
         oldbuttons = buttons;
         buttons = MARS_SYS_COMM8;
         int newbuttons = (buttons ^ oldbuttons) & buttons;
 
+        old_fpcamera_x = fpcamera_x;
+        old_fpcamera_y = fpcamera_y;
+
         if (MARS_SYS_COMM8 & SEGA_CTRL_RIGHT) {
-            fcamera_x += fmoveinc_x;
+            fpcamera_x += fpmoveinc_x;
         }
         else if (MARS_SYS_COMM8 & SEGA_CTRL_LEFT) {
-            fcamera_x -= fmoveinc_x;
+            fpcamera_x -= fpmoveinc_x;
         }
 
         if (MARS_SYS_COMM8 & SEGA_CTRL_DOWN) {
-            fcamera_y += fmoveinc_x;
+            fpcamera_y += fpmoveinc_y;
         }
         else if (MARS_SYS_COMM8 & SEGA_CTRL_UP) {
-            fcamera_y -= fmoveinc_x;
+            fpcamera_y -= fpmoveinc_y;
         }
 
-        if (fcamera_x < 0)
-            fcamera_x = 0;
-        if (fcamera_x > tm.tiles_hor * tm.tw - canvas_width)
-            fcamera_x = tm.tiles_hor * tm.tw - canvas_width;
-
-        if (fcamera_y < 0)
-            fcamera_y = 0;
-        if (fcamera_y > tm.tiles_ver * tm.th - canvas_height)
-            fcamera_y = tm.tiles_ver * tm.th - canvas_height;
-
-        camera_x = (int)fcamera_x;
-        camera_y = (int)fcamera_y;
-
+        if (fpcamera_x < 0) fpcamera_x = 0;
+        if (fpcamera_y < 0) fpcamera_y = 0;
+        
         if (newbuttons & SEGA_CTRL_B)
         {
             hud = (hud + 1) % 2;
@@ -350,7 +337,17 @@ int main(void)
 
         Hw32xFlipWait();
 
-        display(framecount, hud, fpscount, totaltics, clearhud);
+        clip = display(framecount, hud, fpscount, totaltics, clearhud);
+        if (clip & 2)
+        {
+            // clipped to the right
+            fpcamera_x = old_fpcamera_x;
+        }
+        if (clip & 8)
+        {
+            // clipped to the right
+            fpcamera_y = old_fpcamera_y;
+        }
 
         clearhud--;
         if (clearhud < 0)

@@ -18,6 +18,7 @@ enum {
     DRAWSPR_OVERWRITE   = 4,
     DRAWSPR_PRECISE     = 8,
     DRAWSPR_SCALE       = 16,
+    DRAWSPR_MULTICORE   = 32,
 };
 
 typedef struct {
@@ -35,6 +36,7 @@ typedef struct {
     int numlayers;
     int numtiles;
     uint16_t** layers;
+    int* lplx;
 
     int tiles_hor, tiles_ver;
     int canvas_tiles_hor, canvas_tiles_ver;
@@ -67,7 +69,10 @@ typedef struct {
 
 typedef struct {
     tilemap_t* tm;
-    uint16_t x, y;
+    int16_t startlayer;
+    int16_t numlayers;
+    int32_t camera_x, camera_y;
+    int16_t x, y;
     uint16_t start_tile, end_tile;
     uint16_t scroll_tile_id;
     uint16_t num_tiles_x;

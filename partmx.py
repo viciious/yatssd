@@ -54,7 +54,7 @@ for l in range(numlayers):
     print("layer%02d," % l)
 print("};")
 
-print("const int16_t tmxlplx[][2] = {");
+print("const int tmxlplx[][2] = {");
 for l in root.findall('layer'):
     plx = 1.0
     ply = 1.0
@@ -62,18 +62,19 @@ for l in root.findall('layer'):
         plx = float(l.attrib["parallaxx"])
     if "parallaxy" in l.attrib:
         ply = float(l.attrib["parallaxy"])
-    print("{%d,%d}," % (int(plx*32767), int(ply*32767)))
+    print("{%d,%d}," % (int(plx*65536), int(ply*65536)))
+    #break
 print("};")
 
 print("typedef struct {");
 print("int tilew, tileh;");
 print("int numtw, numth;");
 print("int numlayers;");
-print("int16_t **layerplx;");
+print("int *layerplx;");
 print("uint16_t **layers;");
 print("} dtilemap_t;");
 
-print("const dtilemap_t tmx = {%d,%d,%d,%d,%d,(int16_t **)%s,(uint16_t **)%s};" % (tilew, tileh, numtw, numth, numlayers, "tmxlplx", "tmxl"))
+print("const dtilemap_t tmx = {%d,%d,%d,%d,%d,(int *)%s,(uint16_t **)%s};" % (tilew, tileh, numtw, numth, numlayers, "&tmxlplx[0][0]", "tmxl"))
 
 #ET.dump(root)
 

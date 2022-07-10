@@ -33,21 +33,18 @@ ATTR_DATA_ALIGNED;
 
 
 void init_tilemap(tilemap_t* tm, int tw, int th, int numh, int numv, 
-    const uint16_t** tmx, int nl);
+    const uint16_t** tmx, int nl, const int *lplx);
 
-void draw_tile_layer(drawtilelayerscmd_t* cmd)
+void draw_handle_layercmd(drawtilelayerscmd_t* cmd)
 ATTR_DATA_ALIGNED;
 
-int draw_tilemap(tilemap_t* tm)
+int draw_tilemap(tilemap_t* tm, int fpcamera_x, int fpcamera_y, int *cameraclip)
 ATTR_DATA_ALIGNED;
 
 void draw_dirtyrect(tilemap_t* tm, int x, int y, int w, int h)
 ATTR_DATA_ALIGNED;
 
 extern tilemap_t tm;
-
-extern int old_camera_x, old_camera_y;
-extern int camera_x, camera_y;
 
 extern uint16_t canvas_rebuild_id;
 extern int window_canvas_x, window_canvas_y;
