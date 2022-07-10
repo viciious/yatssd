@@ -130,7 +130,7 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
     if (sizeof(DUINT) == 1 && (x & 1) && (hw > 4) && !((intptr_t)ts & 1) && (cmd->flags & DRAWSPR_OVERWRITE)) {
         unsigned i, count, nn;
 
-        count = (hw - 1 - (hw & 1)) >> 1;
+        count = (hw - 1) >> 1;
         nn = (count + 15) >> 4;
 
         for (i = 0; i < h; i++) {
@@ -311,7 +311,7 @@ void DFUNC(_sprite8_flip1)(DUINT* fb, drawsprcmd_t* cmd)
     if (sizeof(DUINT) == 1 && !(x & 1) && (w > 3) && !(cmd->sx & 1) && (cmd->flags & DRAWSPR_OVERWRITE)) {
         unsigned i, count, nn;
 
-        count = (hw - 1 - (hw & 1)) >> 1;
+        count = (hw - 1) >> 1;
         nn = (count + 15) >> 4;
 
         for (i = 0; i < h; i++) {
