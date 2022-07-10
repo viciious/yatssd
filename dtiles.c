@@ -147,8 +147,6 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
             int tile;
             int t1 = y_tile;
             int t2 = y_tile + num_tiles_x;
-            if (t2 >= end_tile)
-                t2 = end_tile;
 
             id = stid;
             x = xx;
@@ -190,8 +188,6 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
             int tile;
             int t1 = y_tile;
             int t2 = y_tile + num_tiles_x;
-            if (t2 >= end_tile)
-                t2 = end_tile;
 
             id = stid;
             x = xx;
@@ -242,6 +238,7 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
         camera_x = 0;
         clipped |= 1;
     }
+
     if (camera_x > tm->tiles_hor * tm->tw - canvas_width)
     {
         camera_x = tm->tiles_hor * tm->tw - canvas_width;
@@ -253,55 +250,68 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
         camera_y = 0;
         clipped |= 4;
     }
+
     if (camera_y > tm->tiles_ver * tm->th - canvas_height)
     {
         camera_y = tm->tiles_ver * tm->th - canvas_height;
         clipped |= 8;
     }
 
+    int scroll_tiles_hor = 0, scroll_interval_hor = 0;
+    int scroll_tiles_ver = 0, scroll_interval_ver = 0;
+    int scroll_count_hor = 0, scroll_count_ver = 0;
+    int top_scroll_tile_hor = 0, top_scroll_tile_ver = 0;
+
     if (layer == 0)
     {
-        main_camera_x = camera_x;
-        main_camera_y = camera_y;
+        scroll_tiles_hor = tm->scroll_tiles_hor;
+        scroll_interval_hor = tm->scroll_interval_hor;
+
+        scroll_tiles_ver = tm->scroll_tiles_ver;
+        scroll_interval_ver = tm->scroll_interval_ver;
+    
+        scroll_count_hor = camera_x / scroll_interval_hor;
+        scroll_count_ver = camera_y / scroll_interval_ver;
+
+        top_scroll_tile_hor = scroll_tiles_hor * scroll_count_hor;
+        top_scroll_tile_ver = scroll_tiles_ver * scroll_count_ver;
     }
-
-    int scroll_tiles_hor = tm->scroll_tiles_hor;
-    int scroll_interval_hor = tm->scroll_interval_hor;
-
-    int scroll_tiles_ver = tm->scroll_tiles_ver;
-    int scroll_interval_ver = tm->scroll_interval_ver;
-
-    int start_tile_hor = camera_x / w;
-    int start_tile_ver = camera_y / h;
-
-    int end_tile_hor = (camera_x + canvas_width) / w;
-    int end_tile_ver = (camera_y + canvas_height) / h;
-
-    int scroll_count_hor = camera_x / scroll_interval_hor;
-    int scroll_count_ver = camera_y / scroll_interval_ver;
 
     int tiles_hor = tm->tiles_hor;
     int tiles_ver = tm->tiles_ver;
 
+
+    int start_tile_hor = camera_x / w;
     if (start_tile_hor < 0) start_tile_hor = 0;
-    if (start_tile_hor > tiles_hor) start_tile_hor = tiles_hor;
-    if (end_tile_hor < 0) end_tile_hor = 0;
-    if (end_tile_hor > tiles_hor) end_tile_hor = tiles_hor;
+    if (start_tile_hor >= tiles_hor) return 0;
 
-    int half_tiles_hor = (end_tile_hor - start_tile_hor) >> 1;
-
+    int start_tile_ver = camera_y / h;
     if (start_tile_ver < 0) start_tile_ver = 0;
-    if (start_tile_ver > tiles_ver) start_tile_ver = tiles_ver;
+    if (start_tile_ver >= tiles_ver) return 0;
+
+
+    int end_tile_hor = (camera_x + canvas_width) / w;
+    if (end_tile_hor < 0) end_tile_hor = 0;
+    if (end_tile_hor >= tiles_hor) end_tile_hor = tiles_hor - 1;
+
+    int end_tile_ver = (camera_y + canvas_height) / h;
     if (end_tile_ver < 0) end_tile_ver = 0;
-    if (end_tile_ver > tiles_ver) end_tile_ver = tiles_ver;
+    if (end_tile_ver >= tiles_ver) end_tile_ver = tiles_ver - 1;
+
 
     int start_tile = start_tile_ver * tiles_hor + start_tile_hor;
+    if (start_tile >= tm->numtiles)
+        return 0;
+
     int end_tile = end_tile_ver * tiles_hor + end_tile_hor;
     if (end_tile >= tm->numtiles)
-        end_tile = tm->numtiles - 1;
+        end_tile = tm->numtiles-1;
 
-    int top_scroll_tile_hor = scroll_tiles_hor * scroll_count_hor;
-    int top_scroll_tile_ver = scroll_tiles_ver * scroll_count_ver;
+
+    int half_tiles_hor = (end_tile_hor - start_tile_hor) >> 1;
+    if (half_tiles_hor < 0)
+        half_tiles_hor = 0;
+
 
     int canvas_tiles_hor = tm->canvas_tiles_hor;
     int canvas_tiles_ver = tm->canvas_tiles_ver;
@@ -309,6 +319,12 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
     int scroll_x, scroll_y;
 
     int xx, yy;
+
+    if (layer == 0)
+    {
+        main_camera_x = camera_x;
+        main_camera_y = camera_y;
+    }
 
     scroll_x = camera_x - scroll_count_hor * scroll_interval_hor;
     scroll_y = camera_y - scroll_count_ver * scroll_interval_ver;
@@ -373,7 +389,7 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
     scmd->start_tile = start_tile + half_tiles_hor;
     scmd->end_tile = end_tile;
     scmd->scroll_tile_id = cmd.scroll_tile_id + half_tiles_hor;
-    scmd->num_tiles_x = half_tiles_hor;
+    scmd->num_tiles_x = end_tile_hor - start_tile_hor - half_tiles_hor;
     scmd->startlayer = layer;
     scmd->numlayers = numlayers;
     scmd->camera_x = camera_x, scmd->camera_y = camera_y;
