@@ -421,7 +421,8 @@ int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip)
 {
     int i;
     int clip, drawcnt;
-    char parallax = 1;
+    char parallax;
+    const int *bplx = &tm->lplx[0];
 
     *cameraclip = 0;
     old_camera_x = main_camera_x;
@@ -434,6 +435,18 @@ int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip)
     if (tm->wrapY) {
         while (fpcamera_y >= tm->wrapY)
             fpcamera_y -= tm->wrapY;
+    }
+
+    // test for parallax in the upper layers
+    parallax = 0;
+    for (i = 1; i < tm->numlayers; i++)
+    {
+        const int *tplx = &tm->lplx[2*i];
+        if (tplx[0] != bplx[0] || tplx[1] != bplx[1])
+        {
+            parallax = 1;
+            break;
+        }
     }
 
     if (!parallax)
