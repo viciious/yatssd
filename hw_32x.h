@@ -26,6 +26,7 @@ extern void Hw32xScreenPrintf(const char *format, ...);
 extern void Hw32xDelay(int ticks);
 extern void Hw32xScreenFlip(int wait);
 extern void Hw32xFlipWait(void);
+extern void Hw32xSetPalette(const char *palette) HW32X_ATTR_DATA_ALIGNED;
 
 extern unsigned short HwMdReadPad(int port);
 extern unsigned char HwMdReadSram(unsigned short offset);

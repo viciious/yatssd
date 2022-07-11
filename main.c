@@ -232,7 +232,6 @@ int main(void)
     char hud = 0, clearhud = 0;
     int ticksperframe;
     int buttons, oldbuttons;
-    unsigned i;
     char NTSC;
 
     Hw32xInit(MARS_VDP_MODE_256, 0);
@@ -253,11 +252,7 @@ int main(void)
     // change 4096.0f to something else if WDT TCSR is changed!
     mars_frtc2msec_frac = 4096.0f * 1000.0f / (NTSC ? NTSC_CLOCK_SPEED : PAL_CLOCK_SPEED) * 65536.0f;
 
-    for (i = 0; i < 256; i++) {
-        if (palette[i * 3 + 0] == 0 && palette[i * 3 + 1] == 0 && palette[i * 3 + 2] == 0)
-            Hw32xSetBGColor(i, palette[i * 3 + 0] >> 3, palette[i * 3 + 1] >> 3, palette[i * 3 + 2] >> 3);
-        Hw32xSetFGColor(i, palette[i * 3 + 0] >> 3, palette[i * 3 + 1] >> 3, palette[i * 3 + 2] >> 3);
-    }
+    Hw32xSetPalette((const char *)palette);
 
     MARS_SYS_COMM4 = 0;
     MARS_SYS_COMM6 = 0;

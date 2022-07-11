@@ -22,6 +22,8 @@ static int init = 0;
 static unsigned short fgc = 0, bgc = 0;
 static unsigned char fgs = 0, bgs = 0;
 
+static volatile const char *new_palette;
+
 static volatile unsigned int mars_vblank_count = 0;
 
 volatile unsigned short currentFB = 0;
@@ -40,6 +42,23 @@ uint32_t canvas_yaw = 288; // canvas_height + scrollheight
 void pri_vbi_handler(void)
 {
     mars_vblank_count++;
+
+    if (new_palette)
+    {
+        int i;
+        volatile unsigned short *palette = &MARS_CRAM;
+
+        if ((MARS_SYS_INTMSK & MARS_SH2_ACCESS_VDP) == 0)
+		    return;
+
+        for (i = 0; i < 256; i++)
+        {
+             palette[i] = COLOR(new_palette[0], new_palette[1], new_palette[2]);
+             new_palette += 3;
+        }
+
+        new_palette = NULL;
+    }
 }
 
 unsigned Hw32xGetTicks(void)
@@ -67,6 +86,11 @@ void Hw32xSetBGColor(int s, int r, int g, int b)
     bgs = s;
     bgc = COLOR(r, g, b);
     palette[bgs] = bgc;
+}
+
+void Hw32xSetPalette(const char *palette)
+{
+    new_palette = palette;
 }
 
 void Hw32xUpdateLineTable(int hscroll, int vscroll, int lineskip)
