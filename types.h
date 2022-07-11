@@ -37,6 +37,7 @@ typedef struct {
     int numtiles;
     uint16_t** layers;
     int* lplx;
+    fixed_t wrapX, wrapY;
 
     int tiles_hor, tiles_ver;
     int canvas_tiles_hor, canvas_tiles_ver;

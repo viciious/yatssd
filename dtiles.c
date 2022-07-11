@@ -11,10 +11,12 @@ static int main_camera_x, main_camera_y;
 
 static int camera_x, camera_y;
 
-static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamera_y, int numlayers, int *pclipped)
+static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, 
+int fpcamera_y, int numlayers, int *pclipped)
 ATTR_DATA_ALIGNED;
 
-void init_tilemap(tilemap_t *tm, int tw, int th, int numh, int numv, const uint16_t **l, int nl, const int *lplx)
+void init_tilemap(tilemap_t *tm, int tw, int th, int numh, int numv, 
+    const uint16_t **l, int nl, const int *lplx, fixed_t wrapX, fixed_t wrapY)
 {
     tm->tw = tw;
     tm->th = th;
@@ -36,6 +38,9 @@ void init_tilemap(tilemap_t *tm, int tw, int th, int numh, int numv, const uint1
     tm->canvas_tiles_ver = canvas_yaw / th;
 
     tm->numtiles = numh * numv;
+
+    tm->wrapX = wrapX;
+    tm->wrapY = wrapY;
 }
 
 // in window coordinates
@@ -421,6 +426,15 @@ int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip)
     *cameraclip = 0;
     old_camera_x = main_camera_x;
     old_camera_y = main_camera_y;
+
+    if (tm->wrapX) {
+        while (fpcamera_x >= tm->wrapX)
+            fpcamera_x -= tm->wrapX;
+    }
+    if (tm->wrapY) {
+        while (fpcamera_y >= tm->wrapY)
+            fpcamera_y -= tm->wrapY;
+    }
 
     if (!parallax)
         return draw_tile_layer(tm, 0, fpcamera_x, fpcamera_y, tm->numlayers, cameraclip);

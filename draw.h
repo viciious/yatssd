@@ -33,7 +33,7 @@ ATTR_DATA_ALIGNED;
 
 
 void init_tilemap(tilemap_t* tm, int tw, int th, int numh, int numv, 
-    const uint16_t** tmx, int nl, const int *lplx);
+    const uint16_t** tmx, int nl, const int *lplx, fixed_t wrapX, fixed_t wrapY);
 
 void draw_handle_layercmd(drawtilelayerscmd_t* cmd)
 ATTR_DATA_ALIGNED;

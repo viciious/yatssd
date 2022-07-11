@@ -66,15 +66,29 @@ for l in root.findall('layer'):
     #break
 print("};")
 
+wrapX = wrapY = 0
+pa = root.find("properties")
+if pa:
+    for p in pa.findall("property"):
+        if "name" not in p.attrib:
+            continue
+
+        name = p.attrib["name"]
+        if name == "wrap-x":
+            wrapX = int(p.attrib["value"])
+        if name == "wrap-y":
+            wrapY = int(p.attrib["value"])
+
 print("typedef struct {");
 print("int tilew, tileh;");
 print("int numtw, numth;");
 print("int numlayers;");
+print("int wrapX, wrapY;");
 print("int *layerplx;");
 print("uint16_t **layers;");
 print("} dtilemap_t;");
 
-print("const dtilemap_t tmx = {%d,%d,%d,%d,%d,(int *)%s,(uint16_t **)%s};" % (tilew, tileh, numtw, numth, numlayers, "&tmxlplx[0][0]", "tmxl"))
+print("const dtilemap_t tmx = {%d,%d,%d,%d,%d,%d,%d,(int *)%s,(uint16_t **)%s};" % (tilew, tileh, numtw, numth, numlayers, wrapX, wrapY, "&tmxlplx[0][0]", "tmxl"))
 
 #ET.dump(root)
 

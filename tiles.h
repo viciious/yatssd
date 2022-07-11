@@ -35,7 +35,8 @@ typedef struct {
 int tilew, tileh;
 int numtw, numth;
 int numlayers;
+int wrapX, wrapY;
 int *layerplx;
 uint16_t **layers;
 } dtilemap_t;
-const dtilemap_t tmx = {16,16,259,24,1,(int *)&tmxlplx[0][0],(uint16_t **)tmxl};
+const dtilemap_t tmx = {16,16,259,24,1,0,0,(int *)&tmxlplx[0][0],(uint16_t **)tmxl};

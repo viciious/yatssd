@@ -281,7 +281,8 @@ int main(void)
     Hw32xScreenFlip(0);
 
     init_tilemap(&tm, tmx.tilew, tmx.tileh, tmx.numtw, tmx.numth, 
-        (const uint16_t **)tmx.layers, tmx.numlayers, (const int *)tmx.layerplx);
+        (const uint16_t **)tmx.layers, tmx.numlayers, (const int *)tmx.layerplx, 
+        tmx.wrapX * (1<<16), tmx.wrapY * (1<<16));
 
     while (1) {
         int starttics;
