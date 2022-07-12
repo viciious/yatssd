@@ -53,7 +53,7 @@ void pri_vbi_handler(void)
 
         for (i = 0; i < 256; i++)
         {
-             palette[i] = COLOR(new_palette[0], new_palette[1], new_palette[2]);
+             palette[i] = COLOR(new_palette[0] >> 3, new_palette[1] >> 3, new_palette[2] >> 3);
              new_palette += 3;
         }
 
