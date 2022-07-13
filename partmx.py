@@ -39,7 +39,24 @@ for l in root.findall('layer'):
         for x in rr:
             if len(x) == 0:
                 break
-            print(int(x), end=",")
+
+            x = int(x)
+            flip = (x >> 30) & 3
+
+            newflip = 0
+            if flip & 3 == 1:
+                newflip = 3
+            elif flip & 3 == 2:
+                newflip = 1
+            elif flip & 3 == 3:
+                newflip = 2
+
+            x &= (1<<14)-1
+            x <<= 2
+            x |= newflip
+
+            print(x, end=",")
+
         print("")
     print("};")
 

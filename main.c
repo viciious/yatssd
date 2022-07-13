@@ -197,10 +197,10 @@ int display(int framecount, int hudenable, int fpscount, int totaltics, int clea
     if (sprmode >= 0)
     {
         int mode = DRAWSPR_OVERWRITE|DRAWSPR_MULTICORE;
-        if (sprmode < 3)
+        if (sprmode <= 3)
             mode |= sprmode | DRAWSPR_PRECISE;
         else
-            mode |= (sprmode - 3);
+            mode |= (sprmode - 4);
         for (j = 0; j < 5; j++)
         {
             for (i = 0; i < 5; i++)

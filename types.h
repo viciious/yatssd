@@ -31,7 +31,7 @@ typedef struct {
 } rect_t;
 
 typedef struct {
-    int tw, th;
+    unsigned tw, th;
 
     int numlayers;
     int numtiles;
@@ -39,10 +39,10 @@ typedef struct {
     int* lplx;
     fixed_t wrapX, wrapY;
 
-    int tiles_hor, tiles_ver;
-    int canvas_tiles_hor, canvas_tiles_ver;
-    int scroll_tiles_hor, scroll_interval_hor;
-    int scroll_tiles_ver, scroll_interval_ver;
+    unsigned tiles_hor, tiles_ver;
+    unsigned canvas_tiles_hor, canvas_tiles_ver;
+    unsigned scroll_tiles_hor, scroll_interval_hor;
+    unsigned scroll_tiles_ver, scroll_interval_ver;
 } tilemap_t;
 
 typedef struct {
