@@ -130,7 +130,7 @@ int slave_task(int cmd)
     case 2:
         return 1;
     case 3:
-        ClearCacheLines(&slave_drawsprcmd, (sizeof(drawsprcmd_t) + 15) / 16);
+        ClearCacheLines(&slave_drawsprcmd, (sizeof(drawsprcmd_t) + 31) / 16);
         draw_handle_drawspritecmd(&slave_drawsprcmd);
         return 1;
     case 4:
@@ -142,8 +142,8 @@ int slave_task(int cmd)
         ClearCacheLines((uintptr_t)&window_canvas_y & ~15, 1);
         ClearCacheLines((uintptr_t)&canvas_pitch & ~15, 1);
         ClearCacheLines((uintptr_t)&nodraw & ~15, 1);
-        ClearCacheLines(&slave_drawtilelayerscmd, (sizeof(drawtilelayerscmd_t) + 15) / 16);
-        ClearCacheLines(&tm, (sizeof(tilemap_t) + 15) / 16);
+        ClearCacheLines(&slave_drawtilelayerscmd, (sizeof(drawtilelayerscmd_t) + 31) / 16);
+        ClearCacheLines(&tm, (sizeof(tilemap_t) + 31) / 16);
         draw_handle_layercmd(&slave_drawtilelayerscmd);
         return 1;
     default:
