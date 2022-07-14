@@ -1,7 +1,6 @@
 #include "32x.h"
 #include "types.h"
 #include "draw.h"
-#include "res.h"
 #include "hw_32x.h"
 
 drawtilelayerscmd_t slave_drawtilelayerscmd;
@@ -20,14 +19,15 @@ static int draw_drawtile(int x, int y, int w, int h,
 ATTR_DATA_ALIGNED;
 
 void init_tilemap(tilemap_t *tm, int tw, int th, int numh, int numv, 
-    const uint16_t **l, int nl, const int *lplx, fixed_t wrapX, fixed_t wrapY)
+    uint16_t **l, int nlayers, int *lplx, uint8_t **reslist)
 {
     tm->tw = tw;
     tm->th = th;
 
-    tm->layers = (uint16_t **)l;
-    tm->numlayers = nl;
-    tm->lplx = (int *)lplx;
+    tm->layers = l;
+    tm->numlayers = nlayers;
+    tm->lplx = lplx;
+    tm->reslist = reslist;
 
     tm->tiles_hor = numh;
     tm->tiles_ver = numv;
@@ -43,6 +43,14 @@ void init_tilemap(tilemap_t *tm, int tw, int th, int numh, int numv,
 
     tm->numtiles = numh * numv;
 
+    tm->wrapX = 0;
+    tm->wrapY = 0;
+
+    Hw32xUpdateLineTable(0, 0, 0);
+}
+
+void set_tilemap_wrap(tilemap_t *tm, fixed_t wrapX, fixed_t wrapY)
+{
     tm->wrapX = wrapX;
     tm->wrapY = wrapY;
 }
@@ -140,6 +148,7 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
     const int start_tile = cmd->start_tile, end_tile = cmd->end_tile;
     const int scroll_tile_id = cmd->scroll_tile_id;
     const int num_tiles_x = cmd->num_tiles_x;
+    const uint8_t **reslist = (const uint8_t **)tm->reslist;
     int curdrawmode = cmd->drawmode;
     draw_spritefn_t fn = draw_spritefn(curdrawmode);
     int drawcnt = 0;
@@ -167,7 +176,7 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
                 uint16_t idx = layer[tile];
                 if (idx != 0)
                 {
-                    uint8_t* res = reslist[(idx >> 2) - 1];
+                    const uint8_t* res = reslist[(idx >> 2) - 1];
                     //if (debug) res = reslist[0];
                     draw_sprite(x, y, w, h, res, drawmode | (idx & 3), 1);
                     drawcnt++;
@@ -217,7 +226,7 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
                     if (idx != 0)
                     {
                         int tiledrawmode;
-                        uint8_t* res = reslist[(idx >> 2) - 1];
+                        const uint8_t* res = reslist[(idx >> 2) - 1];
 
                         tiledrawmode = drawmode | (idx & 3);
                         fn = draw_spritefn(tiledrawmode);

@@ -36,6 +36,7 @@ typedef struct {
     int numlayers;
     int numtiles;
     uint16_t** layers;
+    uint8_t **reslist;
     int* lplx;
     fixed_t wrapX, wrapY;
 

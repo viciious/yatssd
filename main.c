@@ -7,6 +7,7 @@
 #include "draw.h"
 #include "pal.h"
 #include "tiles.h"
+#include "res.h"
 
 uint8_t test32x32_trans_smileData[] __attribute__((aligned(16))) =
 {
@@ -276,8 +277,10 @@ int main(void)
     Hw32xScreenFlip(0);
 
     init_tilemap(&tm, tmx.tilew, tmx.tileh, tmx.numtw, tmx.numth, 
-        (const uint16_t **)tmx.layers, tmx.numlayers, (const int *)tmx.layerplx, 
-        tmx.wrapX * (1<<16), tmx.wrapY * (1<<16));
+        (uint16_t **)tmx.layers, tmx.numlayers, (int *)tmx.layerplx, 
+        (uint8_t **)reslist);
+
+    set_tilemap_wrap(&tm, tmx.wrapX * (1<<16), tmx.wrapY * (1<<16));
 
     while (1) {
         int starttics;
