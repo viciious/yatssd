@@ -18,19 +18,21 @@ static int draw_drawtile(int x, int y, int w, int h,
     const uint8_t* data, int flags, void* fb, draw_spritefn_t fn)
 ATTR_DATA_ALIGNED;
 
-void init_tilemap(tilemap_t *tm, int tw, int th, int numh, int numv, 
-    uint16_t **l, int nlayers, int *lplx, uint8_t **reslist)
+void init_tilemap(tilemap_t *tm, const dtilemap_t *dtm, uint8_t **reslist)
 {
+    int tw = dtm->tilew;
+    int th = dtm->tileh;
+
     tm->tw = tw;
     tm->th = th;
 
-    tm->layers = l;
-    tm->numlayers = nlayers;
-    tm->lplx = lplx;
+    tm->layers = dtm->layers;
+    tm->numlayers = dtm->numlayers;
+    tm->lplx = dtm->layerplx;
     tm->reslist = reslist;
 
-    tm->tiles_hor = numh;
-    tm->tiles_ver = numv;
+    tm->tiles_hor = dtm->numtw;
+    tm->tiles_ver = dtm->numth;
 
     tm->scroll_tiles_hor = (canvas_pitch - canvas_width) / tw;
     tm->scroll_interval_hor = tm->scroll_tiles_hor * tw;
@@ -41,18 +43,17 @@ void init_tilemap(tilemap_t *tm, int tw, int th, int numh, int numv,
     tm->canvas_tiles_hor = canvas_pitch / tw;
     tm->canvas_tiles_ver = canvas_yaw / th;
 
-    tm->numtiles = numh * numv;
+    tm->numtiles = tm->tiles_hor * tm->tiles_ver;
 
-    tm->wrapX = 0;
-    tm->wrapY = 0;
+    set_tilemap_wrap(tm, dtm->wrapX, dtm->wrapY);
 
     Hw32xUpdateLineTable(0, 0, 0);
 }
 
 void set_tilemap_wrap(tilemap_t *tm, fixed_t wrapX, fixed_t wrapY)
 {
-    tm->wrapX = wrapX;
-    tm->wrapY = wrapY;
+    tm->wrapX = wrapX * (1<<16);
+    tm->wrapY = wrapY * (1<<16);
 }
 
 // in window coordinates

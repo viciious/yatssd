@@ -15,6 +15,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 static int X = 0, Y = 0;
 static int MX = 40, MY = 25;
@@ -22,7 +23,7 @@ static int init = 0;
 static unsigned short fgc = 0, bgc = 0;
 static unsigned char fgs = 0, bgs = 0;
 
-static volatile const char *new_palette;
+static volatile const uint8_t *new_palette;
 
 static volatile unsigned int mars_vblank_count = 0;
 
@@ -88,7 +89,7 @@ void Hw32xSetBGColor(int s, int r, int g, int b)
     palette[bgs] = bgc;
 }
 
-void Hw32xSetPalette(const char *palette)
+void Hw32xSetPalette(const uint8_t *palette)
 {
     new_palette = palette;
 }

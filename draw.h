@@ -32,8 +32,7 @@ int draw_clip(int x, int y, int w, int h, rect_t* cliprect)
 ATTR_DATA_ALIGNED;
 
 
-void init_tilemap(tilemap_t* tm, int tw, int th, int numh, int numv, 
-    uint16_t** tmx, int nl, int *lplx, uint8_t **reslist);
+void init_tilemap(tilemap_t *tm, const dtilemap_t *dtm, uint8_t **reslist);
 
 void set_tilemap_wrap(tilemap_t *tm, fixed_t wrapX, fixed_t wrapY);
 

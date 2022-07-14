@@ -3,8 +3,12 @@ import csv
 import sys
 
 fn = "Platform.tmx"
+outpref = ""
+
 if len(sys.argv) > 1:
     fn = sys.argv[1]
+if len(sys.argv) > 2:
+    outpref = sys.argv[2] + "_"
 
 tree = ET.parse(fn)
 root = tree.getroot()
@@ -32,7 +36,7 @@ for l in root.findall('layer'):
     d = l.find('data')
     r = csv.reader(d.text.split('\n'), delimiter=',', skipinitialspace=True)
 
-    print("const uint16_t layer%02d[] = {" % numlayers)
+    print("const uint16_t %slayer%02d[] = {" % (outpref, numlayers))
     for rr in r:
         if len(rr) == 0:
             continue
@@ -66,12 +70,12 @@ for l in root.findall('layer'):
     numlayers = numlayers + 1
     #break
 
-print("const uint16_t* tmxl[] = {");
+print("const uint16_t* %stmxl[] = {" % outpref);
 for l in range(numlayers):
-    print("layer%02d," % l)
+    print("%slayer%02d," % (outpref, l))
 print("};")
 
-print("const int tmxlplx[][2] = {");
+print("const int %stmxlplx[][2] = {" % outpref);
 for l in root.findall('layer'):
     plx = 1.0
     ply = 1.0
@@ -96,16 +100,7 @@ if pa:
         if name == "wrap-y":
             wrapY = int(p.attrib["value"])
 
-print("typedef struct {");
-print("int tilew, tileh;");
-print("int numtw, numth;");
-print("int numlayers;");
-print("int wrapX, wrapY;");
-print("int *layerplx;");
-print("uint16_t **layers;");
-print("} dtilemap_t;");
-
-print("const dtilemap_t tmx = {%d,%d,%d,%d,%d,%d,%d,(int *)%s,(uint16_t **)%s};" % (tilew, tileh, numtw, numth, numlayers, wrapX, wrapY, "&tmxlplx[0][0]", "tmxl"))
+print("const dtilemap_t %stmx = {%d,%d,%d,%d,%d,%d,%d,(int *)&%stmxlplx[0][0],(uint16_t **)%stmxl};" % (outpref, tilew, tileh, numtw, numth, numlayers, wrapX, wrapY, outpref, outpref))
 
 #ET.dump(root)
 

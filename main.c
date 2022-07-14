@@ -253,7 +253,7 @@ int main(void)
     // change 4096.0f to something else if WDT TCSR is changed!
     mars_frtc2msec_frac = 4096.0f * 1000.0f / (NTSC ? NTSC_CLOCK_SPEED : PAL_CLOCK_SPEED) * 65536.0f;
 
-    Hw32xSetPalette((const char *)palette);
+    Hw32xSetPalette(palette);
 
     MARS_SYS_COMM4 = 0;
     MARS_SYS_COMM6 = 0;
@@ -276,11 +276,7 @@ int main(void)
 
     Hw32xScreenFlip(0);
 
-    init_tilemap(&tm, tmx.tilew, tmx.tileh, tmx.numtw, tmx.numth, 
-        (uint16_t **)tmx.layers, tmx.numlayers, (int *)tmx.layerplx, 
-        (uint8_t **)reslist);
-
-    set_tilemap_wrap(&tm, tmx.wrapX * (1<<16), tmx.wrapY * (1<<16));
+    init_tilemap(&tm, &tmx, (uint8_t **)reslist);
 
     while (1) {
         int starttics;

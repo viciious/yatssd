@@ -30,6 +30,17 @@ typedef struct {
     int16_t x2, y2;
 } rect_t;
 
+// "on-disk" tilemap
+typedef struct {
+    int tilew, tileh;
+    int numtw, numth;
+    int numlayers;
+    int wrapX, wrapY;
+    int *layerplx;
+    uint16_t **layers;
+} dtilemap_t;
+
+// in-memory tilemap
 typedef struct {
     unsigned tw, th;
 
