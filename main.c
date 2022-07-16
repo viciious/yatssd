@@ -5,9 +5,9 @@
 #include "sound.h"
 #include "types.h"
 #include "draw.h"
-#include "pla_VGA.h"
-#include "pla_VGA_palette.h"
-#include "platformer.h"
+#include "assets/platformer/pla_VGA.h"
+#include "assets/platformer/pla_VGA_palette.h"
+#include "assets/platformer/platformer.h"
 
 uint8_t test32x32_trans_smileData[] __attribute__((aligned(16))) =
 {
