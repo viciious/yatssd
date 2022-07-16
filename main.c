@@ -5,9 +5,9 @@
 #include "sound.h"
 #include "types.h"
 #include "draw.h"
-#include "pal.h"
-#include "tiles.h"
-#include "res.h"
+#include "pla_VGA.h"
+#include "pla_VGA_palette.h"
+#include "platformer.h"
 
 uint8_t test32x32_trans_smileData[] __attribute__((aligned(16))) =
 {
@@ -253,7 +253,7 @@ int main(void)
     // change 4096.0f to something else if WDT TCSR is changed!
     mars_frtc2msec_frac = 4096.0f * 1000.0f / (NTSC ? NTSC_CLOCK_SPEED : PAL_CLOCK_SPEED) * 65536.0f;
 
-    Hw32xSetPalette(palette);
+    Hw32xSetPalette(pla_VGA_Palette);
 
     MARS_SYS_COMM4 = 0;
     MARS_SYS_COMM6 = 0;
@@ -276,7 +276,7 @@ int main(void)
 
     Hw32xScreenFlip(0);
 
-    init_tilemap(&tm, &tmx, (uint8_t **)reslist);
+    init_tilemap(&tm, &platformer_Map, (uint8_t **)pla_VGA_Reslist);
 
     while (1) {
         int starttics;
