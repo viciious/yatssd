@@ -259,8 +259,6 @@ int main(void)
 
     Hw32xSetPalette(tileset2_Palette);
 
-    Hw32xSetBGColor(0, 0, 0, 0);
-
     MARS_SYS_COMM4 = 0;
     MARS_SYS_COMM6 = 0;
 
