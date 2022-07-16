@@ -37,7 +37,7 @@ function hex(v) {
 function hex2(v) {
     return "0x" + v.toString(16).padStart(2, "0");
 }
- 
+
 var customTilesFormat = {
     name: "YATSSD tileset and palette files",
     extension: "h",
@@ -58,7 +58,8 @@ var customTilesFormat = {
 
         let imagePath = tileset.image;
         let image = new Image(imagePath);
-        let colorTable = image.colorTable()
+        let colorTable = image.colorTable();
+        let backgroundColor = tileset.backgroundColor;
 
         let paletteFileData = "";
         paletteFileData += "#ifndef "+resourceName.toUpperCase()+"_PALETTE_H\n";
@@ -68,8 +69,14 @@ var customTilesFormat = {
         paletteFileData += "const uint8_t "+resourceName+"_Palette[] __attribute__((aligned(16))) = {\n";
 
         let lastind = 0;
-        for (const [ind, value] of Object.entries(colorTable)) {
+        for (let [ind, value] of Object.entries(colorTable)) {
             let rgb = [];
+
+            if (ind == 0 && backgroundColor)
+            {
+                value = parseInt(backgroundColor.toString().slice(1),16);
+            }
+
             rgb.push(hex2((value >> 16) & 0xff));
             rgb.push(hex2((value >> 8 ) & 0xff));
             rgb.push(hex2((value >> 0 ) & 0xff));
@@ -104,21 +111,36 @@ var customTilesFormat = {
         let id = 0
         let res = []
 
-        for (y = 0; y < image.height; y += tileset.tileHeight)
-        {
-            for (x = 0; x < image.width; x += tileset.tileWidth)
-            {
-                let i = 0
-                let j = 0
+        // empty dummy tile
+        let name = resourceName+"_Res"+dec(id)
+        res.push(name)
 
+        tilesetData += "uint8_t "+name+"[] __attribute__((aligned(16))) = {\n"
+        for (let i = 0; i < tileset.tileHeight; i++)
+        {
+            for (j = 0; j < tileset.tileWidth; j++) {
+                tilesetData += hex2(0)+","
+            }
+            tilesetData += "\n"
+        }
+        if (tilesetData.slice(-2) == ",\n")
+            tilesetData = tilesetData.slice(0,-2) + "\n";
+        tilesetData += "};\n\n"
+
+        id = 1
+
+        for (let y = 0; y < image.height; y += tileset.tileHeight)
+        {
+            for (let x = 0; x < image.width; x += tileset.tileWidth)
+            {
                 let name = resourceName+"_Res"+dec(id)
                 res.push(name)
 
                 tilesetData += "uint8_t "+name+"[] __attribute__((aligned(16))) = {\n"
 
-                for (i = 0; i < tileset.tileHeight; i++)
+                for (let i = 0; i < tileset.tileHeight; i++)
                 {
-                    for (j = 0; j < tileset.tileWidth; j++)
+                    for (let j = 0; j < tileset.tileWidth; j++)
                     {
                         let p = image.pixel(x+j, y+i)
                         tilesetData += hex2(revColorTable[p])+","

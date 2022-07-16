@@ -34,6 +34,118 @@ function hex(v) {
    return "0x" + v.toString(16);
 }
 
+function hex2(v) {
+    return "0x" + v.toString(16).padStart(2, "0");
+}
+
+function BEWordHex(v) {
+    var buf = new ArrayBuffer(2);
+    var data8 = new Uint8ClampedArray(buf);
+    var data16 = new Uint16Array(buf);
+    data16[0] = v
+    return "0x"+data8[1].toString(16) + "," + "0x"+data8[0].toString(16)
+}
+
+function BEWordHex(v) {
+    var buf = new ArrayBuffer(2);
+    var data8 = new Uint8ClampedArray(buf);
+    var data16 = new Uint16Array(buf);
+    data16[0] = v
+    return "0x"+data8[1].toString(16) + "," + "0x"+data8[0].toString(16)
+}
+
+function exportBMPAsHeader(filePath, fileName) {
+    let fileBaseName = FileInfo.completeBaseName(fileName).replace(/[^a-zA-Z0-9-_]/g, "_");
+    fileBaseName += "_bmp"
+
+    let image = new Image(fileName.toString().replace("file:///", ""))
+    let colorTable = image.colorTable()
+
+    let headerFullName = FileInfo.joinPaths(filePath, fileBaseName+".h")
+
+    let resourceName = fileBaseName;
+    let c = fileBaseName.slice(0, 1)
+    if (c >= '0' && c <= '9') {
+        resourceName = "_" + resourceName;
+    }
+
+    let bmpFileData = ""
+    bmpFileData += "#ifndef "+resourceName.toUpperCase()+"_H\n";
+    bmpFileData += "#define "+resourceName.toUpperCase()+"_H\n";
+    bmpFileData += "\n";
+
+    bmpFileData += "const char "+resourceName+"[] = {\n";
+    bmpFileData += "// width\n";
+    bmpFileData += BEWordHex(image.width)+",\n";
+    bmpFileData += "// height\n";
+    bmpFileData += BEWordHex(image.height)+",\n";
+
+    bmpFileData += "// palette\n";
+
+    let lastind = 0
+    for (const [ind, value] of Object.entries(colorTable)) {
+        if (ind == 16) {
+            break
+        }
+        let r = (value >> 16) & 0xff; r = (r+1) >> 5; r &= 0x7;
+        let g = (value >> 8 ) & 0xff; g = (g+1) >> 5; g &= 0x7;
+        let b = (value >> 0 ) & 0xff; b = (b+1) >> 5; b &= 0x7;
+        let cram = (b << 8) | (g << 4) | (r << 1);
+
+        bmpFileData += BEWordHex(cram)+",\n";
+
+        lastind = ind;
+    }
+    for (lastind++; lastind < 16; lastind++)
+    {
+        bmpFileData += BEWordHex(0)+",\n";
+    }
+    
+    let revColorTable = {};
+    for (const [ind, value] of Object.entries(colorTable)) {
+        revColorTable[value] = ind | 0
+    }
+
+    bmpFileData += "// data words";
+    let i = 0
+    for (y = 0; y < image.height; y++)
+    {
+        for (x = 0; x < image.width; x += 4)
+        {
+            if (i % 16 == 0)
+            {
+                i = 0;
+                bmpFileData += "\n";
+            }
+            let p0 = image.pixel(x, y)
+            p0 = revColorTable[p0] & 0xf;
+            let p1 = image.pixel(x+1, y)
+            p1 = revColorTable[p1] & 0xf;
+            let p2 = image.pixel(x+2, y)
+            p2 = revColorTable[p2] & 0xf;
+            let p3 = image.pixel(x+3, y)
+            p3 = revColorTable[p3] & 0xf;
+
+            let p = (p0 << 12) | (p1 << 8) | (p2 << 4) | p3;
+            bmpFileData += BEWordHex(p)+",";
+            i++;
+        }
+    }
+
+    if (bmpFileData.slice(-1) == ",")
+        bmpFileData = bmpFileData.slice(0,-1);    
+    bmpFileData += "\n};\n";
+    bmpFileData += "#endif\n";
+
+    let bmpFile = new TextFile(headerFullName, TextFile.WriteOnly);
+    bmpFile.write(bmpFileData);
+    bmpFile.commit();
+
+    console.log("Bitmap exported to "+headerFullName);
+
+    return [fileBaseName, resourceName];
+}
+
 var customMapFormat = {
     name: "YATSSD tilemap header files",
     extension: "h",
@@ -56,19 +168,29 @@ var customMapFormat = {
             resourceName = "_" + resourceName;
         }
 
+        let includesData = "#include <stdint.h>\n";
+
         let headerFileData = "";
         headerFileData += "#ifndef "+resourceName.toUpperCase()+"_H\n";
         headerFileData += "#define "+resourceName.toUpperCase()+"_H\n\n";
-        headerFileData += "#include <stdint.h>\n";
-        headerFileData += "\n";
 
         let tileData = "";
         let layerData = "const uint16_t *" + resourceName + "_Layers[] = {";
         let parallaxData = "const int " + resourceName + "_Parallax[][2] = {";
+        let planeB = "(void *)0";
 
         let numLayers = 0
         for (let i = 0; i < map.layerCount; ++i) {
             let layer = map.layerAt(i);
+
+            if (layer.isImageLayer) {
+                let res = exportBMPAsHeader(filePath, layer.imageSource);
+                if (layer.name == "MD_PlaneB") {
+                    includesData += "#include \"" + res[0] + ".h\"\n";
+                    planeB = "(char *)"+res[1];
+                }
+                continue
+            }
 
             if (!layer.isTileLayer) {
                 continue;
@@ -127,9 +249,11 @@ var customMapFormat = {
         mapData += dec(numLayers)+",";
         mapData += dec(map.property("wrap-x") || 0)+"," + dec(map.property("wrap-y") || 0)+",";
         mapData += "(int *)"+resourceName + "_Parallax,";
-        mapData += "(uint16_t **)"+resourceName + "_Layers";
+        mapData += "(uint16_t **)"+resourceName + "_Layers,";
+        mapData += planeB;
         mapData += "};\n";
 
+        headerFileData += includesData + "\n";
         headerFileData += tileData + "\n";
         headerFileData += layerData + "\n";
         headerFileData += parallaxData + "\n";
