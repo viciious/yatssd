@@ -17,13 +17,19 @@
 #include <string.h>
 #include <stdint.h>
 
+#define COLOR_BITS (15)
+#define COLOR_PRI  (1<<COLOR_BITS)
+#define COLOR_MASK ((1<<COLOR_BITS)-1)
+
 static int X = 0, Y = 0;
 static int MX = 40, MY = 25;
 static int init = 0;
-static unsigned short fgc = 0, bgc = 0;
-static unsigned char fgs = 0, bgs = 0;
+static unsigned short fgc = -1, bgc = 0;
+static unsigned short fgs = -1, bgs = 0;
+static unsigned short fgp = 0, bgp = 0;
 
 static volatile const uint8_t *new_palette;
+static volatile char new_pri;
 
 static volatile unsigned int mars_vblank_count = 0;
 
@@ -42,24 +48,42 @@ uint32_t canvas_yaw = 288; // canvas_height + scrollheight
 
 void pri_vbi_handler(void)
 {
+    int i;
+    volatile unsigned short *palette = &MARS_CRAM;
+
     mars_vblank_count++;
+
+    if ((MARS_SYS_INTMSK & MARS_SH2_ACCESS_VDP) == 0)
+	    return;
 
     if (new_palette)
     {
-        int i;
-        volatile unsigned short *palette = &MARS_CRAM;
-
-        if ((MARS_SYS_INTMSK & MARS_SH2_ACCESS_VDP) == 0)
-		    return;
-
         for (i = 0; i < 256; i++)
         {
-             palette[i] = COLOR(new_palette[0] >> 3, new_palette[1] >> 3, new_palette[2] >> 3);
-             new_palette += 3;
+            palette[i] = COLOR(new_palette[0] >> 3, new_palette[1] >> 3, new_palette[2] >> 3); 
+            new_palette += 3;
         }
 
-        new_palette = NULL;
+        if (fgs != -1)
+            fgc = palette[fgs] | (fgc & COLOR_PRI);
+        if (bgs != -1)
+            bgc = palette[bgs] | (bgc & COLOR_PRI);
     }
+    else if (new_pri)
+    {
+        for (i = 0; i < 256; i++)
+        {
+            palette[i] = (palette[i] & COLOR_MASK) | (i == bgs ? bgp : fgp);
+        }
+    }
+
+    if (fgs != -1)
+        palette[fgs] = fgc;
+    if (bgs != -1)
+        palette[bgs] = bgc;
+
+    new_palette = NULL;
+    new_pri = 0;
 }
 
 unsigned Hw32xGetTicks(void)
@@ -77,21 +101,39 @@ void Hw32xSetFGColor(int s, int r, int g, int b)
 {
     volatile unsigned short *palette = &MARS_CRAM;
     fgs = s;
-    fgc = COLOR(r, g, b);
+    if (s < 0) return;
+    fgc = COLOR(r, g, b) | fgp;
     palette[fgs] = fgc;
+    new_pri = 1;
 }
 
 void Hw32xSetBGColor(int s, int r, int g, int b)
 {
     volatile unsigned short *palette = &MARS_CRAM;
+    if (s < 0) return;
     bgs = s;
-    bgc = COLOR(r, g, b);
+    bgc = COLOR(r, g, b) | bgp;
     palette[bgs] = bgc;
+    new_pri = 1;
 }
 
 void Hw32xSetPalette(const uint8_t *palette)
 {
     new_palette = palette;
+}
+
+void Hw32xSetFGOverlayPriorityBit(int p)
+{
+    fgp = p ? COLOR_PRI : 0;
+    fgc = (fgc & COLOR_MASK) | fgp;
+    new_pri = 1;
+}
+
+void Hw32xSetBGOverlayPriorityBit(int p)
+{
+    bgp = p ? COLOR_PRI : 0;
+    bgc = (bgc & COLOR_MASK) | bgp;
+    new_pri = 1;
 }
 
 void Hw32xUpdateLineTable(int hscroll, int vscroll, int lineskip)
@@ -149,15 +191,17 @@ void Hw32xUpdateLineTable(int hscroll, int vscroll, int lineskip)
 void Hw32xInit(int vmode, int lineskip)
 {
     volatile unsigned short *frameBuffer16 = &MARS_FRAMEBUFFER;
+    int priority = vmode & (MARS_VDP_PRIO_32X | MARS_VDP_PRIO_68K);
     int i;
 
     // Wait for the SH2 to gain access to the VDP
     while ((MARS_SYS_INTMSK & MARS_SH2_ACCESS_VDP) == 0) ;
 
+    vmode &= ~(MARS_VDP_PRIO_32X | MARS_VDP_PRIO_68K);
     if (vmode == MARS_VDP_MODE_256)
     {
         // Set 8-bit paletted mode, 224 lines
-        MARS_VDP_DISPMODE = MARS_224_LINES | MARS_VDP_MODE_256;
+        MARS_VDP_DISPMODE = MARS_224_LINES | MARS_VDP_MODE_256 | priority;
 
         // init both framebuffers
 
@@ -187,7 +231,7 @@ void Hw32xInit(int vmode, int lineskip)
     else if (vmode == MARS_VDP_MODE_32K)
     {
         // Set 16-bit direct mode, 224 lines
-        MARS_VDP_DISPMODE = MARS_224_LINES | MARS_VDP_MODE_32K;
+        MARS_VDP_DISPMODE = MARS_224_LINES | MARS_VDP_MODE_32K | priority;
 
         // init both framebuffers
 
@@ -495,4 +539,37 @@ void Hw32xFlipWait(void)
 {
     while ((MARS_VDP_FBCTL & MARS_VDP_FS) == UNCACHED_CURFB);
     UNCACHED_CURFB ^= 1;
+}
+
+#define HwMDPlaneNum(p) ((p) >= 'A' && (p) <= 'B' ? (p)-'A' : ((p) >= 'a' && (p) <= 'b' ? (p)-'a' : (p)&1))
+
+void HwMdClearPlanes(void)
+{
+    while (MARS_SYS_COMM0);
+    MARS_SYS_COMM0 = 0x0600;
+    while (MARS_SYS_COMM0);
+}
+
+void HwMdSetPlaneBitmap(char plane, void *data)
+{
+    while (MARS_SYS_COMM0);
+    *(volatile uintptr_t*)&MARS_SYS_COMM12 = (uintptr_t)data;
+    MARS_SYS_COMM0 = 0x0700 + HwMDPlaneNum(plane);
+    while (MARS_SYS_COMM0);
+}
+
+void HwMdHScrollPlane(char plane, int hscroll)
+{
+    while (MARS_SYS_COMM0);
+    MARS_SYS_COMM2 = hscroll;
+    MARS_SYS_COMM0 = 0x0800 + HwMDPlaneNum(plane);
+    while (MARS_SYS_COMM0);
+}
+
+void HwMdVScrollPlane(char plane, int hscroll)
+{
+    while (MARS_SYS_COMM0);
+    MARS_SYS_COMM2 = hscroll;
+    MARS_SYS_COMM0 = 0x0802 + HwMDPlaneNum(plane);
+    while (MARS_SYS_COMM0);
 }

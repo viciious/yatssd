@@ -9,7 +9,7 @@ LDSCRIPTSDIR = $(ROOTDIR)/ldscripts
 LIBPATH = -L$(ROOTDIR)/m68k-elf/lib -L$(ROOTDIR)/m68k-elf/lib/gcc/m68k-elf/4.6.2 -L$(ROOTDIR)/m68k-elf/m68k-elf/lib
 INCPATH = -I$. -I$(ROOTDIR)/m68k-elf/include -I$(ROOTDIR)/m68k-elf/m68k-elf/include
 
-CCFLAGS = -m68000 -Wall -O1 -c -fomit-frame-pointer
+CCFLAGS = -m68000 -Wall -Os -c -fomit-frame-pointer
 ASFLAGS = -m68000 --register-prefix-optional
 LINKFLAGS = -T $(LDSCRIPTSDIR)/mars-md.ld -Wl,-Map=output.map -nostdlib
 
@@ -24,7 +24,7 @@ RM = rm -f
 
 TARGET = m68k
 LIBS = $(LIBPATH) -lc -lgcc -lnosys
-OBJS = crt0.o main.o kos.o cd.o
+OBJS = crt0.o main.o kos.o cd.o planeb.o
 
 all: $(TARGET).bin
 

@@ -14,6 +14,8 @@ extern "C" {
 
 extern void Hw32xSetFGColor(int s, int r, int g, int b);
 extern void Hw32xSetBGColor(int s, int r, int g, int b);
+void Hw32xSetFGOverlayPriorityBit(int p);
+void Hw32xSetBGOverlayPriorityBit(int p);
 extern void Hw32xInit(int vmode, int lineskip);
 extern int Hw32xScreenGetX();
 extern int Hw32xScreenGetY();
@@ -42,6 +44,11 @@ extern void HwMdPutc(char chr, int color, int x, int y);
 extern void HwMdPutsf(int x, int y, int color, const char* format, ...);
 
 void Hw32xUpdateLineTable(int hscroll, int vscroll, int lineskip) HW32X_ATTR_DATA_ALIGNED;
+
+void HwMdSetPlaneBitmap(char plane, void* data);
+void HwMdClearPlanes(void);
+void HwMdHScrollPlane(char plane, int hscroll);
+void HwMdVScrollPlane(char plane, int hscroll);
 
 void pri_vbi_handler(void) HW32X_ATTR_DATA_ALIGNED;
 void pri_dma1_handler(void) HW32X_ATTR_DATA_ALIGNED;

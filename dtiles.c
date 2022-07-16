@@ -5,10 +5,12 @@
 
 drawtilelayerscmd_t slave_drawtilelayerscmd;
 
-static int old_camera_x, old_camera_y;
-static int main_camera_x, main_camera_y;
+static uint16_t global_tilemap_id;
 
-static int camera_x, camera_y;
+static fixed_t old_camera_x, old_camera_y;
+static fixed_t main_camera_x, main_camera_y;
+
+static fixed_t camera_x, camera_y;
 
 static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, 
 int fpcamera_y, int numlayers, int *pclipped)
@@ -20,15 +22,20 @@ ATTR_DATA_ALIGNED;
 
 void init_tilemap(tilemap_t *tm, const dtilemap_t *dtm, uint8_t **reslist)
 {
+    int i;
     int tw = dtm->tilew;
     int th = dtm->tileh;
+
+    tm->id = global_tilemap_id++;
 
     tm->tw = tw;
     tm->th = th;
 
     tm->layers = dtm->layers;
     tm->numlayers = dtm->numlayers;
-    tm->lplx = dtm->layerplx;
+    tm->layers = dtm->layers;
+    tm->mdPlane[0] = (dtilelayer_t *)&dtm->mdPlaneA;
+    tm->mdPlane[1] = (dtilelayer_t *)&dtm->mdPlaneB;
     tm->reslist = reslist;
 
     tm->tiles_hor = dtm->numtw;
@@ -46,6 +53,22 @@ void init_tilemap(tilemap_t *tm, const dtilemap_t *dtm, uint8_t **reslist)
     tm->numtiles = tm->tiles_hor * tm->tiles_ver;
 
     set_tilemap_wrap(tm, dtm->wrapX, dtm->wrapY);
+
+    HwMdClearPlanes();
+
+    for (i = 0; i < 2; i++) {
+        const dtilelayer_t *mdpl = tm->mdPlane[i];
+        if (mdpl) {
+            HwMdSetPlaneBitmap(i, mdpl->bitmap);
+
+            HwMdHScrollPlane(i, mdpl->offset[0]);
+            HwMdVScrollPlane(i, -mdpl->offset[1]);
+        }
+    }
+
+    Hw32xSetBGOverlayPriorityBit(0);
+
+    Hw32xSetFGOverlayPriorityBit(dtm->mdPriority^1);
 
     Hw32xUpdateLineTable(0, 0, 0);
 }
@@ -156,7 +179,7 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
 
     if (cmd->startlayer != 0)
     {
-        const uint16_t* layer = tm->layers[cmd->startlayer];
+        const uint16_t* layer = tm->layers[cmd->startlayer].tiles;
         int y_tile;
         int stid = scroll_tile_id;
         int drawmode = cmd->drawmode;
@@ -177,7 +200,7 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
                 uint16_t idx = layer[tile];
                 if (idx != 0)
                 {
-                    const uint8_t* res = reslist[(idx >> 2) - 1];
+                    const uint8_t* res = reslist[(idx >> 2)];
                     //if (debug) res = reslist[0];
                     draw_sprite(x, y, w, h, res, drawmode | (idx & 3), 1);
                     drawcnt++;
@@ -198,7 +221,7 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
     for (l = 0; l < cmd->numlayers; l++)
     {
         int drawmode = cmd->drawmode;
-        const uint16_t* layer = tm->layers[cmd->startlayer+l];
+        const uint16_t* layer = tm->layers[cmd->startlayer+l].tiles;
         int y_tile;
         int stid = scroll_tile_id;
         void* fb;
@@ -224,10 +247,10 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
                 uint16_t idx = layer[tile];
                 if (dirty[id] != idx)
                 {
-                    if (idx != 0)
+                    if (idx != 0 || !l)
                     {
                         int tiledrawmode;
-                        const uint8_t* res = reslist[(idx >> 2) - 1];
+                        const uint8_t* res = reslist[(idx >> 2)];
 
                         tiledrawmode = drawmode | (idx & 3);
                         fn = draw_spritefn(tiledrawmode);
@@ -258,7 +281,7 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
 {
     int x, y;
     int w = tm->tw, h = tm->th;
-    int *plx = &tm->lplx[layer*2];
+    const fixed_t *plx = tm->layers[layer].parallax;
     int clipped = 0;
 
     camera_x = FixedMul(fpcamera_x, plx[0])>>16;
@@ -377,7 +400,7 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
             Hw32xUpdateLineTable(scroll_x >> 1, scroll_y, 0);
         }
 
-        if (canvas_rebuild_id != *extrafb)
+        if (tm->id != *extrafb)
         {
             uint16_t* p = dirty;
 
@@ -388,7 +411,7 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
                 }
             }
 
-            *extrafb = canvas_rebuild_id;
+            *extrafb = tm->id;
         }
     }
 
@@ -443,7 +466,7 @@ int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip)
     int i;
     int clip, drawcnt;
     char parallax;
-    const int *bplx = &tm->lplx[0];
+    const fixed_t *bplx = tm->layers[0].parallax;
 
     *cameraclip = 0;
     old_camera_x = main_camera_x;
@@ -462,11 +485,23 @@ int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip)
     parallax = 0;
     for (i = 1; i < tm->numlayers; i++)
     {
-        const int *tplx = &tm->lplx[2*i];
+        const fixed_t *tplx = tm->layers[i].parallax;
         if (tplx[0] != bplx[0] || tplx[1] != bplx[1])
         {
             parallax = 1;
             break;
+        }
+    }
+
+    for (i = 0; i < 2; i++) {
+        const dtilelayer_t *mdpl = tm->mdPlane[i];
+
+        if (mdpl->bitmap) {
+            fixed_t camera_x = FixedMul(fpcamera_x, mdpl->parallax[0])>>16;
+            fixed_t camera_y = FixedMul(fpcamera_y, mdpl->parallax[1])>>16;
+
+            HwMdHScrollPlane(i, mdpl->offset[0]+camera_x);
+            HwMdVScrollPlane(i, -mdpl->offset[1]-camera_y);
         }
     }
 

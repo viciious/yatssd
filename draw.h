@@ -47,7 +47,6 @@ ATTR_DATA_ALIGNED;
 
 extern tilemap_t tm;
 
-extern uint16_t canvas_rebuild_id;
 extern int window_canvas_x, window_canvas_y;
 extern int32_t canvas_width, canvas_height;
 extern uint32_t canvas_pitch, canvas_yaw;
