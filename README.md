@@ -19,12 +19,14 @@ Features
 - sprites can be scaled to an arbitrary size
 - works on real hardware
 
-Scripts
+Tiled plugins
 ============
 
-Run `python3 palbmp.py >res.h` to re-generate the tiles and global palette.
+The extensions/ directory contains Javascript plugins for exporting Tilemaps and Tilesets in YATSSD format.
 
-Run `python3 partmx.py >tiles.h` to re-generate the tilemap.
+The plugins require Tiled version 1.5 or newer.
+
+[More information on Tiled plugins.](https://doc.mapeditor.org/en/stable/reference/scripting/)
 
 License
 ============
