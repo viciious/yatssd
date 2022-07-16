@@ -22,6 +22,8 @@ static int MX = 40, MY = 25;
 static int init = 0;
 static unsigned short fgc = 0, bgc = 0;
 static unsigned char fgs = 0, bgs = 0;
+static unsigned short pri = 0;
+static unsigned short fgp = 0, bgp = 0;
 
 static volatile const uint8_t *new_palette;
 
@@ -54,8 +56,8 @@ void pri_vbi_handler(void)
 
         for (i = 0; i < 256; i++)
         {
-             palette[i] = COLOR(new_palette[0] >> 3, new_palette[1] >> 3, new_palette[2] >> 3);
-             new_palette += 3;
+            palette[i] = COLOR(new_palette[0] >> 3, new_palette[1] >> 3, new_palette[2] >> 3) | (i == bgs ? bgp : fgp);
+            new_palette += 3;
         }
 
         new_palette = NULL;
@@ -77,7 +79,7 @@ void Hw32xSetFGColor(int s, int r, int g, int b)
 {
     volatile unsigned short *palette = &MARS_CRAM;
     fgs = s;
-    fgc = COLOR(r, g, b);
+    fgc = COLOR(r, g, b) | pri;
     palette[fgs] = fgc;
 }
 
@@ -85,13 +87,23 @@ void Hw32xSetBGColor(int s, int r, int g, int b)
 {
     volatile unsigned short *palette = &MARS_CRAM;
     bgs = s;
-    bgc = COLOR(r, g, b);
+    bgc = COLOR(r, g, b) | pri;
     palette[bgs] = bgc;
 }
 
 void Hw32xSetPalette(const uint8_t *palette)
 {
     new_palette = palette;
+}
+
+void Hw32xSetFGOverlayPriorityBit(int p)
+{
+    fgp = p ? (1 << 15) : 0;
+}
+
+void Hw32xSetBGOverlayPriorityBit(int p)
+{
+    bgp = p ? (1 << 15) : 0;
 }
 
 void Hw32xUpdateLineTable(int hscroll, int vscroll, int lineskip)
@@ -149,15 +161,17 @@ void Hw32xUpdateLineTable(int hscroll, int vscroll, int lineskip)
 void Hw32xInit(int vmode, int lineskip)
 {
     volatile unsigned short *frameBuffer16 = &MARS_FRAMEBUFFER;
+    int priority = vmode & (MARS_VDP_PRIO_32X | MARS_VDP_PRIO_68K);
     int i;
 
     // Wait for the SH2 to gain access to the VDP
     while ((MARS_SYS_INTMSK & MARS_SH2_ACCESS_VDP) == 0) ;
 
+    vmode &= ~(MARS_VDP_PRIO_32X | MARS_VDP_PRIO_68K);
     if (vmode == MARS_VDP_MODE_256)
     {
         // Set 8-bit paletted mode, 224 lines
-        MARS_VDP_DISPMODE = MARS_224_LINES | MARS_VDP_MODE_256;
+        MARS_VDP_DISPMODE = MARS_224_LINES | MARS_VDP_MODE_256 | priority;
 
         // init both framebuffers
 
@@ -187,7 +201,7 @@ void Hw32xInit(int vmode, int lineskip)
     else if (vmode == MARS_VDP_MODE_32K)
     {
         // Set 16-bit direct mode, 224 lines
-        MARS_VDP_DISPMODE = MARS_224_LINES | MARS_VDP_MODE_32K;
+        MARS_VDP_DISPMODE = MARS_224_LINES | MARS_VDP_MODE_32K | priority;
 
         // init both framebuffers
 
@@ -495,4 +509,12 @@ void Hw32xFlipWait(void)
 {
     while ((MARS_VDP_FBCTL & MARS_VDP_FS) == UNCACHED_CURFB);
     UNCACHED_CURFB ^= 1;
+}
+
+void HwMDsetPlaneBImageData(void *data)
+{
+    while (MARS_SYS_COMM0);
+    *(volatile uintptr_t*)&MARS_SYS_COMM12 = (uintptr_t)data;
+    MARS_SYS_COMM0 = 0x0600;
+    while (MARS_SYS_COMM0);
 }

@@ -177,7 +177,7 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
                 uint16_t idx = layer[tile];
                 if (idx != 0)
                 {
-                    const uint8_t* res = reslist[(idx >> 2) - 1];
+                    const uint8_t* res = reslist[(idx >> 2)];
                     //if (debug) res = reslist[0];
                     draw_sprite(x, y, w, h, res, drawmode | (idx & 3), 1);
                     drawcnt++;
@@ -224,10 +224,10 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
                 uint16_t idx = layer[tile];
                 if (dirty[id] != idx)
                 {
-                    if (idx != 0)
+                    if (idx != 0 || !l)
                     {
                         int tiledrawmode;
-                        const uint8_t* res = reslist[(idx >> 2) - 1];
+                        const uint8_t* res = reslist[(idx >> 2)];
 
                         tiledrawmode = drawmode | (idx & 3);
                         fn = draw_spritefn(tiledrawmode);

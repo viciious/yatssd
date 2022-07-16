@@ -24,7 +24,7 @@ RM = rm -f
 
 TARGET = m68k
 LIBS = $(LIBPATH) -lc -lgcc -lnosys
-OBJS = crt0.o main.o kos.o cd.o
+OBJS = crt0.o main.o kos.o cd.o planeb.o
 
 all: $(TARGET).bin
 

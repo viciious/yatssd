@@ -11,7 +11,7 @@ INCPATH = -I. -I$(ROOTDIR)/sh-elf/include -I$(ROOTDIR)/sh-elf/sh-elf/include
 
 CCFLAGS = -m2 -mb -Wall -c -fomit-frame-pointer -fno-builtin  -ffunction-sections -fdata-sections -g
 CCFLAGS += -fno-align-loops -fno-align-functions -fno-align-jumps -fno-align-labels
-CCFLAGS += -D__32X__ -DMARS
+CCFLAGS += -D__32X__ -DMARS -Iassets/sotn
 
 HWFLAGS := $(CCFLAGS)
 HWFLAGS += -Os -fno-lto

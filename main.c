@@ -5,9 +5,9 @@
 #include "sound.h"
 #include "types.h"
 #include "draw.h"
-#include "assets/platformer/pla_VGA.h"
-#include "assets/platformer/pla_VGA_palette.h"
-#include "assets/platformer/platformer.h"
+#include "assets/sotn/Tileset2Map.h"
+#include "assets/sotn/tileset2.h"
+#include "assets/sotn/tileset2_palette.h"
 
 uint8_t test32x32_trans_smileData[] __attribute__((aligned(16))) =
 {
@@ -235,7 +235,11 @@ int main(void)
     int buttons, oldbuttons;
     char NTSC;
 
-    Hw32xInit(MARS_VDP_MODE_256, 0);
+    Hw32xSetBGOverlayPriorityBit(1);
+
+    Hw32xSetFGOverlayPriorityBit(0);
+
+    Hw32xInit(MARS_VDP_MODE_256|MARS_VDP_PRIO_32X, 0);
 
     SetSH2SR(1);
 
@@ -253,7 +257,9 @@ int main(void)
     // change 4096.0f to something else if WDT TCSR is changed!
     mars_frtc2msec_frac = 4096.0f * 1000.0f / (NTSC ? NTSC_CLOCK_SPEED : PAL_CLOCK_SPEED) * 65536.0f;
 
-    Hw32xSetPalette(pla_VGA_Palette);
+    Hw32xSetPalette(tileset2_Palette);
+
+    Hw32xSetBGColor(0, 0, 0, 0);
 
     MARS_SYS_COMM4 = 0;
     MARS_SYS_COMM6 = 0;
@@ -276,7 +282,11 @@ int main(void)
 
     Hw32xScreenFlip(0);
 
-    init_tilemap(&tm, &platformer_Map, (uint8_t **)pla_VGA_Reslist);
+    init_tilemap(&tm, &Tileset2Map_Map, (uint8_t **)tileset2_Reslist);
+
+    if (Tileset2Map_Map.mdPlaneBBMP != NULL) {
+        HwMDsetPlaneBImageData(Tileset2Map_Map.mdPlaneBBMP);
+    }
 
     while (1) {
         int starttics;
