@@ -45,7 +45,9 @@ extern void HwMdPutsf(int x, int y, int color, const char* format, ...);
 
 void Hw32xUpdateLineTable(int hscroll, int vscroll, int lineskip) HW32X_ATTR_DATA_ALIGNED;
 
-void HwMdSetPlaneBBitmap(void* data) HW32X_ATTR_DATA_ALIGNED;
+void HwMdSetPlaneABitmap(void* data);
+void HwMdSetPlaneBBitmap(void* data);
+void HwMdClearPlanes(void);
 
 void pri_vbi_handler(void) HW32X_ATTR_DATA_ALIGNED;
 void pri_dma1_handler(void) HW32X_ATTR_DATA_ALIGNED;

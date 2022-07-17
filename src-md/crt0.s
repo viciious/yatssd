@@ -224,7 +224,11 @@ handle_req:
         cmpi.w  #0x05FF,d0
         bls     read_mouse
         cmpi.w  #0x06FF,d0
+        bls     handle_planeA
+        cmpi.w  #0x07FF,d0
         bls     handle_planeB
+        cmpi.w  #0x08FF,d0
+        bls     clear_planes        
 | unknown command
         move.w  #0,0xA15120         /* done */
         bra.b   main_loop
@@ -368,6 +372,17 @@ read_mouse:
         bne.b   4b                  /* wait for SH2 to read mouse value */
         bra     main_loop
 
+handle_planeA:
+        move.l  0xA1512C,d0
+        andi.l  #0x0FFFFF,d0
+        move.l  d0,a0
+        bsr     set_rom_bank
+        move.l  a1,-(sp)
+        jsr     set_planeABitmap
+        lea     4(sp),sp            /* clear the stack */
+        move.w  #0,0xA15120         /* done */
+        bra     main_loop
+
 handle_planeB:
         move.l  0xA1512C,d0
         andi.l  #0x0FFFFF,d0
@@ -376,6 +391,11 @@ handle_planeB:
         move.l  a1,-(sp)
         jsr     set_planeBBitmap
         lea     4(sp),sp            /* clear the stack */
+        move.w  #0,0xA15120         /* done */
+        bra     main_loop
+
+clear_planes:
+        jsr     clear_planesAandB
         move.w  #0,0xA15120         /* done */
         bra     main_loop
 
@@ -600,15 +620,22 @@ mky_err:
         moveq   #-1,d0
         rts
 
-| void clear_screen(void);
-| clear the name table for plane B
+| void clear_screen(int plane);
+| clear the name table for plane A or B
         .global clear_screen
 clear_screen:
         moveq   #0,d0
+        move.l  #0x40000003,d1          /* VDP write VRAM at 0xC000 (scroll plane A) */
+        movea.l 4(sp),a0                /* plane */
+        mov.l   a0,d0
+        cmpi.l  #1,d0
+        bne.b   0f
+        move.l  #0x60000003,d1          /* VDP write VRAM at 0xE000 (scroll plane B) */
+0:
+        moveq   #0,d0
         lea     0xC00000,a0
         move.w  #0x8F02,4(a0)           /* set INC to 2 */
-        move.l  #0x60000003,d1          /* VDP write VRAM at 0xE000 (scroll plane B) */
-        move.l  d1,4(a0)                /* write VRAM at plane B start */
+        move.l  d1,4(a0)                /* write VRAM at plane start */
         move.w  #128*32-1,d1
 1:
         move.w  d0,(a0)                 /* clear name pattern */
@@ -625,27 +652,45 @@ clear_screen:
         move.w	#0x9003,4(a0)           /* scroll size 128x32 */
         rts
 
-| void map_screen(void);
+| void map_screen(int plane, int offset, int height, int ormask);
 | set the name table and hscroll for plane B for bitmap mode
         .global map_screen
 map_screen:
-        movem.l d2-d3,-(sp)
         moveq   #0,d0
+        move.l  #0x40000003,d1          /* VDP write VRAM at 0xC000 (scroll plane A) */
+        movea.l 4(sp),a0                /* plane */
+        mov.l   a0,d0
+        cmpi.l  #1,d0
+        bne.b   0f
+        move.l  #0x60000003,d1          /* VDP write VRAM at 0xE000 (scroll plane B) */
+0:
+        moveq   #0,d0
+        movea.l 8(sp),a0
+        move.w  a0,d0                   /* bitmap start */
+        movea.l 12(sp),a0
+
+        movem.l d2-d4,-(sp)
+        moveq   #0,d3
+        move.w  a0,d3                   /* bitmap height */
+
+        moveq   #0,d4
+        movea.l 28(sp),a0
+        move.w  a0,d4                   /* OR mask for palette */
+
         lea     0xC00000,a0
         move.w  #0x8F02,4(a0)           /* set INC to 2 */
-        move.l  #0x60000003,d1          /* VDP write VRAM at 0xE000 (scroll plane B) */
         move.l  d1,4(a0)                /* write VRAM at plane B start */
-        move.w  #27,d3
-        move.w  #0x00E0,d0              /* bitmap starts with pattern 224 */
+  
 1:
-        andi.w	#0x9FFF,d0              /* palette 0 */
+        or      d4,d0                   /* palette */
         move.w  #39,d2
 2:
         move.w  d0,(a0)                 /* name table entry set for next pattern */
         addq.w  #1,d0
         dbra    d2,2b
+
         subi.w	#40,d0
-        ori.w   #0x2000,d0              /* palette 1 */
+        or      d4,d0                   /* palette */
         move.w  #39,d2
 3:
         move.w  d0,(a0)                 /* name table entry set for next pattern */
@@ -663,13 +708,13 @@ map_screen:
         move.w	#111,d1
 5:
         move.l	#0x00000000,(a0)        /* scroll A = 0, scroll B = red/green */
-        move.l	#0x0000FEC0,(a0)        /* scroll A = 0, scroll B = green/blue */
+        #move.l	#0x0000FEC0,(a0)        /* scroll A = 0, scroll B = green/blue */
         dbra	d1,5b
 
         move.w  #0x8B03,4(a0)           /* HSCROLL each line */
         move.w	#0x9003,4(a0)           /* scroll size 128x32 */
 
-        movem.l (sp)+,d2-d3
+        movem.l (sp)+,d2-d4
         rts
 
 | void set_vram(int offset, int val);

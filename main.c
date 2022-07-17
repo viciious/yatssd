@@ -235,10 +235,6 @@ int main(void)
     int buttons, oldbuttons;
     char NTSC;
 
-    Hw32xSetBGOverlayPriorityBit(1);
-
-    Hw32xSetFGOverlayPriorityBit(0);
-
     Hw32xInit(MARS_VDP_MODE_256|MARS_VDP_PRIO_32X, 0);
 
     SetSH2SR(1);
@@ -278,13 +274,19 @@ int main(void)
 
     buttons = oldbuttons = 0;
 
-    Hw32xScreenFlip(0);
-
     init_tilemap(&tm, &Tileset2Map_Map, (uint8_t **)tileset2_Reslist);
 
-    if (Tileset2Map_Map.mdPlaneBBitmap) {
-        HwMdSetPlaneBBitmap(Tileset2Map_Map.mdPlaneBBitmap);
-    }
+    HwMdClearPlanes();
+
+    HwMdSetPlaneABitmap(Tileset2Map_Map.mdPlaneABitmap);
+
+    HwMdSetPlaneBBitmap(Tileset2Map_Map.mdPlaneBBitmap);
+
+    Hw32xSetBGOverlayPriorityBit(Tileset2Map_Map.mdPlaneABitmap || Tileset2Map_Map.mdPlaneBBitmap);
+
+    Hw32xSetFGOverlayPriorityBit(0);
+
+    Hw32xScreenFlip(0);
 
     while (1) {
         int starttics;
