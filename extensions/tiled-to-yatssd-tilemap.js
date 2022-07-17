@@ -90,7 +90,7 @@ function exportBMPAsHeader(filePath, fileName) {
         let r = (value >> 16) & 0xff; r = (r+1) >> 5; r &= 0x7;
         let g = (value >> 8 ) & 0xff; g = (g+1) >> 5; g &= 0x7;
         let b = (value >> 0 ) & 0xff; b = (b+1) >> 5; b &= 0x7;
-        let cram = (b << 8) | (g << 4) | (r << 1);
+        let cram = (b << 9) | (g << 5) | (r << 1);
 
         bmpFileData += BEWordHex(cram)+",\n";
 
