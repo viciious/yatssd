@@ -618,11 +618,11 @@ clear_screen:
         move.l  d1,4(a0)                /* write VRAM at hscroll table start */
         move.w	#223,d1
 2:
-        move.l	d0,(a0)					/* scroll A = scroll B = 0 */
+        move.l	d0,(a0)	                /* scroll A = scroll B = 0 */
         dbra	d1,2b
 
         move.w  #0x8B03,4(a0)           /* HSCROLL each line */
-        move.w	#0x9003,4(a0)			/* scroll size 128x32 */
+        move.w	#0x9003,4(a0)           /* scroll size 128x32 */
         rts
 
 | void map_screen(void);
@@ -638,7 +638,7 @@ map_screen:
         move.w  #27,d3
         move.w  #0x00E0,d0              /* bitmap starts with pattern 224 */
 1:
-		andi.w	#0x9FFF,d0              /* palette 0 */
+        andi.w	#0x9FFF,d0              /* palette 0 */
         move.w  #39,d2
 2:
         move.w  d0,(a0)                 /* name table entry set for next pattern */
@@ -652,22 +652,22 @@ map_screen:
         addq.w  #1,d0
         dbra    d2,3b
 
-		moveq	#23,d2
+        moveq	#23,d2
 4:
         move.l  #0,(a0)                 /* clear entries to end of row */
-		dbra	d2,4b
+        dbra	d2,4b
         dbra    d3,1b
 
         move.l  #0x6C000002,d1          /* VDP write VRAM at 0xAC00 (HSCROLL table) */
         move.l  d1,4(a0)                /* write VRAM at hscroll table start */
-		move.w	#111,d1
+        move.w	#111,d1
 5:
-		move.l	#0x00000000,(a0)		/* scroll A = 0, scroll B = red/green */
-		move.l	#0x0000FEC0,(a0)		/* scroll A = 0, scroll B = green/blue */
-		dbra	d1,5b
+        move.l	#0x00000000,(a0)        /* scroll A = 0, scroll B = red/green */
+        move.l	#0x0000FEC0,(a0)        /* scroll A = 0, scroll B = green/blue */
+        dbra	d1,5b
 
         move.w  #0x8B03,4(a0)           /* HSCROLL each line */
-        move.w	#0x9003,4(a0)			/* scroll size 128x32 */
+        move.w	#0x9003,4(a0)           /* scroll size 128x32 */
 
         movem.l (sp)+,d2-d3
         rts
