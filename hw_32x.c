@@ -511,7 +511,7 @@ void Hw32xFlipWait(void)
     UNCACHED_CURFB ^= 1;
 }
 
-void HwMDsetPlaneBImageData(void *data)
+void HwMdSetPlaneBBitmap(void *data)
 {
     while (MARS_SYS_COMM0);
     *(volatile uintptr_t*)&MARS_SYS_COMM12 = (uintptr_t)data;

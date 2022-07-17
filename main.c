@@ -283,7 +283,7 @@ int main(void)
     init_tilemap(&tm, &Tileset2Map_Map, (uint8_t **)tileset2_Reslist);
 
     if (Tileset2Map_Map.mdPlaneBBMP != NULL) {
-        HwMDsetPlaneBImageData(Tileset2Map_Map.mdPlaneBBMP);
+        HwMdSetPlaneBBitmap(Tileset2Map_Map.mdPlaneBBMP);
     }
 
     while (1) {
