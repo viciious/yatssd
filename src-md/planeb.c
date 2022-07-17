@@ -2,7 +2,6 @@
 #include <stddef.h>
 
 void set_planeBitmap(int plane, int start, short* imgptr) __attribute__((section(".data")));
-void set_planeBBitmap(short* imgptr) __attribute__((section(".data")));
 void set_palette(short* pal, int start, int count);
 void clear_screen(int plane);
 void map_screen(int plane, int offset, int height, int ormask);

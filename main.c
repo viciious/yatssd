@@ -278,12 +278,10 @@ int main(void)
 
     HwMdClearPlanes();
 
-    HwMdSetPlaneABitmap(Tileset2Map_Map.mdPlaneABitmap);
-
-    HwMdSetPlaneBBitmap(Tileset2Map_Map.mdPlaneBBitmap);
+    HwMdSetPlaneBitmap('A', Tileset2Map_Map.mdPlaneABitmap);
+    HwMdSetPlaneBitmap('B', Tileset2Map_Map.mdPlaneBBitmap);
 
     Hw32xSetBGOverlayPriorityBit(Tileset2Map_Map.mdPlaneABitmap || Tileset2Map_Map.mdPlaneBBitmap);
-
     Hw32xSetFGOverlayPriorityBit(0);
 
     Hw32xScreenFlip(0);

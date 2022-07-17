@@ -541,19 +541,20 @@ void Hw32xFlipWait(void)
     UNCACHED_CURFB ^= 1;
 }
 
-void HwMdSetPlaneABitmap(void *data)
+void HwMdSetPlaneBitmap(char plane, void *data)
 {
-    while (MARS_SYS_COMM0);
-    *(volatile uintptr_t*)&MARS_SYS_COMM12 = (uintptr_t)data;
-    MARS_SYS_COMM0 = 0x0600;
-    while (MARS_SYS_COMM0);
-}
+    int cmd = 0x0600;
 
-void HwMdSetPlaneBBitmap(void *data)
-{
+    if (plane >= 'A' && plane <= 'B')
+        cmd += 0x0100 * (plane-'A');
+    else if (plane >= 0 && plane <= 1)
+        cmd += 0x0100 * plane;
+    else
+        return;
+
     while (MARS_SYS_COMM0);
     *(volatile uintptr_t*)&MARS_SYS_COMM12 = (uintptr_t)data;
-    MARS_SYS_COMM0 = 0x0700;
+    MARS_SYS_COMM0 = cmd;
     while (MARS_SYS_COMM0);
 }
 
