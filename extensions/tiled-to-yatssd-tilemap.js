@@ -177,6 +177,7 @@ var customMapFormat = {
         let tileData = "";
         let layerData = "const uint16_t *" + resourceName + "_Layers[] = {";
         let parallaxData = "const int " + resourceName + "_Parallax[][2] = {";
+        let planeA = "(void *)0";
         let planeB = "(void *)0";
 
         let numLayers = 0
@@ -184,8 +185,12 @@ var customMapFormat = {
             let layer = map.layerAt(i);
 
             if (layer.isImageLayer) {
-                let res = exportBMPAsHeader(filePath, layer.imageSource);
-                if (layer.name == "MD_PlaneB") {
+                if (layer.name == "MD_PlaneA") {
+                    let res = exportBMPAsHeader(filePath, layer.imageSource);
+                    includesData += "#include \"" + res[0] + ".h\"\n";
+                    planeA = "(char *)"+res[1];
+                } else if (layer.name == "MD_PlaneB") {
+                    let res = exportBMPAsHeader(filePath, layer.imageSource);
                     includesData += "#include \"" + res[0] + ".h\"\n";
                     planeB = "(char *)"+res[1];
                 }
