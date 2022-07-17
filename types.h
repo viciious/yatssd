@@ -38,7 +38,7 @@ typedef struct {
     int wrapX, wrapY;
     int *layerplx;
     uint16_t **layers;
-    char* mdPlaneBBMP;
+    char* mdPlaneBBitmap;
 } dtilemap_t;
 
 // in-memory tilemap
