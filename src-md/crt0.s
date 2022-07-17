@@ -224,7 +224,7 @@ handle_req:
         cmpi.w  #0x05FF,d0
         bls     read_mouse
         cmpi.w  #0x06FF,d0
-        bls     set_planeB
+        bls     handle_planeB
 | unknown command
         move.w  #0,0xA15120         /* done */
         bra.b   main_loop
@@ -368,13 +368,13 @@ read_mouse:
         bne.b   4b                  /* wait for SH2 to read mouse value */
         bra     main_loop
 
-set_planeB:
+handle_planeB:
         move.l  0xA1512C,d0
         andi.l  #0x0FFFFF,d0
         move.l  d0,a0
         bsr     set_rom_bank
         move.l  a1,-(sp)
-        jsr     set_planeBImageData
+        jsr     set_planeBBitmap
         lea     4(sp),sp            /* clear the stack */
         move.w  #0,0xA15120         /* done */
         bra     main_loop
