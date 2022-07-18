@@ -32,7 +32,8 @@ typedef struct {
 
 // "on-disk" tlayer
 typedef struct {
-    int parallax[2];
+    int offset[2];
+    fixed_t parallax[2];
     char* bitmap;
     uint16_t *tiles;
 } dtilelayer_t;
