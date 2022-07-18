@@ -169,99 +169,111 @@ var customMapFormat = {
         }
 
         let includesData = "#include <stdint.h>\n";
+        includesData += "#include <stddef.h>\n";
 
         let headerFileData = "";
         headerFileData += "#ifndef "+resourceName.toUpperCase()+"_H\n";
         headerFileData += "#define "+resourceName.toUpperCase()+"_H\n\n";
 
         let tileData = "";
-        let layerData = "const uint16_t *" + resourceName + "_Layers[] = {";
-        let parallaxData = "const int " + resourceName + "_Parallax[][2] = {";
-        let planeA = "(void *)0";
-        let planeB = "(void *)0";
+        let layerData = "const dtilelayer_t " + resourceName + "_Layers[] = {\n";
+        let planeA = "{0}";
+        let planeB = "{0}";
 
         let numLayers = 0
+        let mdPriority = 0
         for (let i = 0; i < map.layerCount; ++i) {
             let layer = map.layerAt(i);
-
-            if (layer.isImageLayer) {
-                if (layer.name == "MD_PlaneA") {
-                    let res = exportBMPAsHeader(filePath, layer.imageSource);
-                    includesData += "#include \"" + res[0] + ".h\"\n";
-                    planeA = "(char *)"+res[1];
-                } else if (layer.name == "MD_PlaneB") {
-                    let res = exportBMPAsHeader(filePath, layer.imageSource);
-                    includesData += "#include \"" + res[0] + ".h\"\n";
-                    planeB = "(char *)"+res[1];
-                }
-                continue
-            }
-
-            if (!layer.isTileLayer) {
-                continue;
-            }
-            if (!layer.visible) {
-                continue;
-            }
-
-            numLayers++
+            let bitmap = "NULL";
 
             // Replace special characters for an underscore
             let layerName = layer.name.replace(/[^a-zA-Z0-9-_]/g, "_");
             layerName = resourceName+"_Tiles_"+layerName;
 
-            tileData += "const uint16_t "+layerName+"[] = {\n";
-
-            for (y = 0; y < layer.height; ++y) {
-                for (x = 0; x < layer.width; ++x) {
-                    let tile = layer.cellAt(x, y);
-                    let id = tile.tileId+1;
-                    let flip = 0
-
-                    if (tile.flippedHorizontally && tile.flippedVertically)
-                        flip = 2
-                    else if (tile.flippedHorizontally)
-                        flip = 1
-                    else if (tile.flippedVertically)
-                        flip = 3
-                    id = ((id & 0x3FFF) << 2) | flip
-
-                    tileData += hex(id)+",";
-                }
-
-                tileData += "\n";
+            if (!layer.visible) {
+                continue;
             }
 
-            if (tileData.slice(-2) == ",\n")
-                tileData = tileData.slice(0,-2) + "\n";
-            tileData += "};\n";
+            if (layer.isImageLayer) {
+                layerName = "NULL";
+                if (layer.name == "MD_PlaneA") {
+                    let res = exportBMPAsHeader(filePath, layer.imageSource);
+                    includesData += "#include \"" + res[0] + ".h\"\n";
+                    bitmap = "(char *)"+res[1];
+                } else if (layer.name == "MD_PlaneB") {
+                    let res = exportBMPAsHeader(filePath, layer.imageSource);
+                    includesData += "#include \"" + res[0] + ".h\"\n";
+                    bitmap = "(char *)"+res[1];
+                } else {
+                    continue
+                }
 
-            layerData += layerName+",";
-            parallaxData += "{" + dec((layer.parallaxFactor.x*65536) | 0) + "," + dec((layer.parallaxFactor.y*65536) | 0) + "},";
+                if (numLayers > 0)
+                    mdPriority = 1
+            } else if (layer.isTileLayer) {
+                tileData += "const uint16_t "+layerName+"[] = {\n";
+
+                for (y = 0; y < layer.height; ++y) {
+                    for (x = 0; x < layer.width; ++x) {
+                        let tile = layer.cellAt(x, y);
+                        let id = tile.tileId+1;
+                        let flip = 0
+
+                        if (tile.flippedHorizontally && tile.flippedVertically)
+                            flip = 2
+                        else if (tile.flippedHorizontally)
+                            flip = 1
+                        else if (tile.flippedVertically)
+                            flip = 3
+                        id = ((id & 0x3FFF) << 2) | flip
+
+                        tileData += hex(id)+",";
+                    }
+
+                    tileData += "\n";
+                }
+
+                if (tileData.slice(-2) == ",\n")
+                    tileData = tileData.slice(0,-2) + "\n";
+                tileData += "};\n";
+
+                numLayers++
+            }
+
+            let l = "";
+            l += "{";
+            l += "{" + dec((layer.parallaxFactor.x*65536) | 0) + "," + dec((layer.parallaxFactor.y*65536) | 0) + "},";
+            l += bitmap + ",";
+            l += "(uint16_t *)"+layerName;
+            l += "}";
+
+            if (layer.name == "MD_PlaneA") {
+                planeA = l
+            } else if (layer.name == "MD_PlaneB") {
+                planeB = l
+            } else {
+                layerData += l + ",\n";
+            }
         }
 
-        if (layerData.slice(-1) == ",")
-            layerData = layerData.slice(0,-1);
+        if (layerData.slice(-1) == ",\n")
+            layerData = layerData.slice(0,-2);
         layerData += "};\n";
 
-        if (parallaxData.slice(-1) == ",")
-            parallaxData = parallaxData.slice(0,-1);
-        parallaxData += "};\n";
-
-        let mapData = "const dtilemap_t " + resourceName + "_Map = {";
-        mapData += dec(map.tileWidth)+","+dec(map.tileHeight) +",";
-        mapData += dec(map.width)+","+dec(map.height)+",";
-        mapData += dec(numLayers)+",";
-        mapData += dec(map.property("wrap-x") || 0)+"," + dec(map.property("wrap-y") || 0)+",";
-        mapData += "(int *)"+resourceName + "_Parallax,";
-        mapData += "(uint16_t **)"+resourceName + "_Layers,";
-        mapData += planeB;
+        let mapData = "const dtilemap_t " + resourceName + "_Map = {\n";
+        mapData += dec(map.tileWidth)+","+dec(map.tileHeight) +",\n";
+        mapData += dec(map.width)+","+dec(map.height)+",\n";
+        mapData += dec(numLayers)+",\n";
+        mapData += dec(map.property("wrap-x") || 0)+"," + dec(map.property("wrap-y") || 0)+",\n";
+        mapData += "(dtilelayer_t *)" + resourceName + "_Layers,\n";
+        mapData += mdPriority.toString() + ",\n";
+        mapData += planeA + ",\n";
+        mapData += planeB + "\n";
         mapData += "};\n";
 
         headerFileData += includesData + "\n";
         headerFileData += tileData + "\n";
         headerFileData += layerData + "\n";
-        headerFileData += parallaxData + "\n";
         headerFileData += mapData + "\n";
 
         headerFileData += "#endif\n";

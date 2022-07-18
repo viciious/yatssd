@@ -5,10 +5,10 @@
 
 drawtilelayerscmd_t slave_drawtilelayerscmd;
 
-static int old_camera_x, old_camera_y;
-static int main_camera_x, main_camera_y;
+static fixed_t old_camera_x, old_camera_y;
+static fixed_t main_camera_x, main_camera_y;
 
-static int camera_x, camera_y;
+static fixed_t camera_x, camera_y;
 
 static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, 
 int fpcamera_y, int numlayers, int *pclipped)
@@ -28,7 +28,9 @@ void init_tilemap(tilemap_t *tm, const dtilemap_t *dtm, uint8_t **reslist)
 
     tm->layers = dtm->layers;
     tm->numlayers = dtm->numlayers;
-    tm->lplx = dtm->layerplx;
+    tm->layers = dtm->layers;
+    tm->mdPlane[0] = (dtilelayer_t *)&dtm->mdPlaneA;
+    tm->mdPlane[1] = (dtilelayer_t *)&dtm->mdPlaneB;
     tm->reslist = reslist;
 
     tm->tiles_hor = dtm->numtw;
@@ -49,11 +51,16 @@ void init_tilemap(tilemap_t *tm, const dtilemap_t *dtm, uint8_t **reslist)
 
     HwMdClearPlanes();
 
-    HwMdSetPlaneBitmap('A', dtm->mdPlaneABitmap);
-    HwMdSetPlaneBitmap('B', dtm->mdPlaneBBitmap);
+    if (dtm->mdPlaneA.bitmap) {
+        HwMdSetPlaneBitmap('A', dtm->mdPlaneA.bitmap);
+    }
+    if (dtm->mdPlaneB.bitmap) {
+        HwMdSetPlaneBitmap('B', dtm->mdPlaneB.bitmap);
+    }
 
-    Hw32xSetBGOverlayPriorityBit(dtm->mdPlaneABitmap || dtm->mdPlaneBBitmap);
-    Hw32xSetFGOverlayPriorityBit(0);
+    Hw32xSetBGOverlayPriorityBit(0);
+
+    Hw32xSetFGOverlayPriorityBit(dtm->mdPriority^1);
 
     Hw32xUpdateLineTable(0, 0, 0);
 }
@@ -164,7 +171,7 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
 
     if (cmd->startlayer != 0)
     {
-        const uint16_t* layer = tm->layers[cmd->startlayer];
+        const uint16_t* layer = tm->layers[cmd->startlayer].tiles;
         int y_tile;
         int stid = scroll_tile_id;
         int drawmode = cmd->drawmode;
@@ -206,7 +213,7 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
     for (l = 0; l < cmd->numlayers; l++)
     {
         int drawmode = cmd->drawmode;
-        const uint16_t* layer = tm->layers[cmd->startlayer+l];
+        const uint16_t* layer = tm->layers[cmd->startlayer+l].tiles;
         int y_tile;
         int stid = scroll_tile_id;
         void* fb;
@@ -266,7 +273,7 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
 {
     int x, y;
     int w = tm->tw, h = tm->th;
-    int *plx = &tm->lplx[layer*2];
+    const int *plx = tm->layers[layer].parallax;
     int clipped = 0;
 
     camera_x = FixedMul(fpcamera_x, plx[0])>>16;
@@ -451,7 +458,7 @@ int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip)
     int i;
     int clip, drawcnt;
     char parallax;
-    const int *bplx = &tm->lplx[0];
+    const int *bplx = tm->layers[0].parallax;
 
     *cameraclip = 0;
     old_camera_x = main_camera_x;
@@ -470,11 +477,19 @@ int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip)
     parallax = 0;
     for (i = 1; i < tm->numlayers; i++)
     {
-        const int *tplx = &tm->lplx[2*i];
+        const int *tplx = tm->layers[i].parallax;
         if (tplx[0] != bplx[0] || tplx[1] != bplx[1])
         {
             parallax = 1;
             break;
+        }
+    }
+
+    for (i = 0; i < 2; i++) {
+        const dtilelayer_t *mdpl = tm->mdPlane[i];
+        if (mdpl->bitmap) {
+            fixed_t camera_x = FixedMul(fpcamera_x, mdpl->parallax[0])>>16;
+            HwMdHScrollPlane(i, camera_x);
         }
     }
 

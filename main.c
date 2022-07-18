@@ -235,7 +235,7 @@ int main(void)
     int buttons, oldbuttons;
     char NTSC;
 
-    Hw32xInit(MARS_VDP_MODE_256|MARS_VDP_PRIO_32X, 0);
+    Hw32xInit(MARS_VDP_MODE_256, 0);
 
     SetSH2SR(1);
 

@@ -30,28 +30,36 @@ typedef struct {
     int16_t x2, y2;
 } rect_t;
 
+// "on-disk" tlayer
+typedef struct {
+    int parallax[2];
+    char* bitmap;
+    uint16_t *tiles;
+} dtilelayer_t;
+
 // "on-disk" tilemap
 typedef struct {
     int tilew, tileh;
     int numtw, numth;
     int numlayers;
     int wrapX, wrapY;
-    int *layerplx;
-    uint16_t **layers;
-    char* mdPlaneABitmap;
-    char* mdPlaneBBitmap;
+    dtilelayer_t *layers;
+    int mdPriority;
+    dtilelayer_t mdPlaneA, mdPlaneB;
 } dtilemap_t;
 
 // in-memory tilemap
 typedef struct {
     unsigned tw, th;
+    fixed_t wrapX, wrapY;
+
+    int numtiles;
 
     int numlayers;
-    int numtiles;
-    uint16_t** layers;
+    dtilelayer_t *layers;
+    dtilelayer_t *mdPlane[2];
+
     uint8_t **reslist;
-    int* lplx;
-    fixed_t wrapX, wrapY;
 
     unsigned tiles_hor, tiles_ver;
     unsigned canvas_tiles_hor, canvas_tiles_ver;
