@@ -273,7 +273,7 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
 {
     int x, y;
     int w = tm->tw, h = tm->th;
-    const int *plx = tm->layers[layer].parallax;
+    const fixed_t *plx = tm->layers[layer].parallax;
     int clipped = 0;
 
     camera_x = FixedMul(fpcamera_x, plx[0])>>16;
@@ -458,7 +458,7 @@ int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip)
     int i;
     int clip, drawcnt;
     char parallax;
-    const int *bplx = tm->layers[0].parallax;
+    const fixed_t *bplx = tm->layers[0].parallax;
 
     *cameraclip = 0;
     old_camera_x = main_camera_x;
@@ -477,7 +477,7 @@ int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip)
     parallax = 0;
     for (i = 1; i < tm->numlayers; i++)
     {
-        const int *tplx = tm->layers[i].parallax;
+        const fixed_t *tplx = tm->layers[i].parallax;
         if (tplx[0] != bplx[0] || tplx[1] != bplx[1])
         {
             parallax = 1;
@@ -489,7 +489,7 @@ int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip)
         const dtilelayer_t *mdpl = tm->mdPlane[i];
         if (mdpl->bitmap) {
             fixed_t camera_x = FixedMul(fpcamera_x, mdpl->parallax[0])>>16;
-            HwMdHScrollPlane(i, camera_x);
+            HwMdHScrollPlane(i, mdpl->offset[0]+camera_x);
         }
     }
 
