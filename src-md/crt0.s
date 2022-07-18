@@ -407,7 +407,7 @@ handle_clrplanes:
 
 handle_hscroll:
         moveq   #0,d1
-        andi.w  #0x0001,d0
+        andi.l  #0x0001,d0
         move.w  0xA15122,d1         /* COMM2 holds hscroll */
         move.l  d1,-(sp)
         move.l  d0,-(sp)        
@@ -664,21 +664,19 @@ clear_plane:
 | set horizontall scroll for plane A or B
         .global hscroll_plane
 hscroll_plane:
-        move.l  4(sp),d1                /* plane number */
-        move.l  8(sp),d0                /* hscroll */
+        move.l  4(sp),d0                /* plane number */
 
-        lea     0xC00000,a0
-
-        lea     0xC00000,a1             /* plane A */
-        cmpi.l  #1,d1
+        move.l  #0x6C000002,d1          /* plane A HSCROLL */
+        cmpi.l  #1,d0
         bne.b   0f
-        lea     0xC00002,a1             /* plane B */
+        move.l  #0x6C020002,d1          /* plane B HSCROLL */
 0:
-        move.w  #0x8F00,4(a0)           /* set INC to 1 */
-        move.l  #0x6C000002,d1          /* VDP write VRAM at 0xAC00 (HSCROLL table) */
+        move.l  8(sp),d0                /* hscroll */
+        lea     0xC00000,a0
+        move.w  #0x8F01,4(a0)           /* set INC to 1 */
         move.l  d1,4(a0)                /* write VRAM at hscroll table start */
 
-        move.w	d0,(a1)	                /* write hscroll */
+        move.w	d0,(a0)	                /* write hscroll */
         move.w  #0x8B00,4(a0)           /* HSCROLL the whole plane */
         rts
 
