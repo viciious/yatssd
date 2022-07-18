@@ -564,3 +564,20 @@ void HwMdClearPlanes(void)
     MARS_SYS_COMM0 = 0x0800;
     while (MARS_SYS_COMM0);
 }
+
+void HwMdHScrollPlane(char plane, int hscroll)
+{
+    int cmd = 0x0900;
+
+    if (plane >= 'A' && plane <= 'B')
+        cmd += (plane-'A');
+    else if (plane >= 0 && plane <= 1)
+        cmd += plane;
+    else
+        return;
+
+    while (MARS_SYS_COMM0);
+    MARS_SYS_COMM2 = hscroll;
+    MARS_SYS_COMM0 = cmd;
+    while (MARS_SYS_COMM0);
+}

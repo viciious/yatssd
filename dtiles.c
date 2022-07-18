@@ -47,6 +47,14 @@ void init_tilemap(tilemap_t *tm, const dtilemap_t *dtm, uint8_t **reslist)
 
     set_tilemap_wrap(tm, dtm->wrapX, dtm->wrapY);
 
+    HwMdClearPlanes();
+
+    HwMdSetPlaneBitmap('A', dtm->mdPlaneABitmap);
+    HwMdSetPlaneBitmap('B', dtm->mdPlaneBBitmap);
+
+    Hw32xSetBGOverlayPriorityBit(dtm->mdPlaneABitmap || dtm->mdPlaneBBitmap);
+    Hw32xSetFGOverlayPriorityBit(0);
+
     Hw32xUpdateLineTable(0, 0, 0);
 }
 

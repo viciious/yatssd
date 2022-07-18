@@ -96,7 +96,7 @@ init_hardware:
         move.w  #0x8A01,(a0) /* reg 10 - HInterrupt timing */
         move.w  #0x8B00,(a0) /* reg 11 - $0000abcd a=extr.int b=vscr cd=hscr */
         move.w  #0x8C81,(a0) /* reg 12 - hcell mode + shadow/highight + interlaced mode (40 cell, no shadow, no interlace)*/
-        move.w  #0x8D2E,(a0) /* reg 13 - HScroll Table = $B800 */
+        move.w  #0x8D2B,(a0) /* reg 13 = HScroll Tbl = 0xAC00 */
         move.w  #0x8E00,(a0) /* reg 14 - not used */
         move.w  #0x8F02,(a0) /* reg 15 - auto increment data */
         move.w  #0x9011,(a0) /* reg 16 - scrl screen v&h size (64x64) */
@@ -229,6 +229,8 @@ handle_req:
         bls     handle_planeB
         cmpi.w  #0x08FF,d0
         bls     handle_clrplanes
+        cmpi.w  #0x09FF,d0
+        bls     handle_hscroll
 | unknown command
         move.w  #0,0xA15120         /* done */
         bra.b   main_loop
@@ -400,6 +402,17 @@ handle_planeB:
 
 handle_clrplanes:
         jsr     clear_planes
+        move.w  #0,0xA15120         /* done */
+        bra     main_loop
+
+handle_hscroll:
+        moveq   #0,d1
+        andi.w  #0x0001,d0
+        move.w  0xA15122,d1         /* COMM2 holds hscroll */
+        move.l  d1,-(sp)
+        move.l  d0,-(sp)        
+        jsr     hscroll_plane
+        lea     8(sp),sp
         move.w  #0,0xA15120         /* done */
         bra     main_loop
 
@@ -645,15 +658,28 @@ clear_plane:
         move.w  d0,(a0)                 /* clear name pattern */
         dbra    d1,1b
 
+        rts
+
+| void hscroll_plane(int plane, int hscroll);
+| set horizontall scroll for plane A or B
+        .global hscroll_plane
+hscroll_plane:
+        move.l  4(sp),d1                /* plane number */
+        move.l  8(sp),d0                /* hscroll */
+
+        lea     0xC00000,a0
+
+        lea     0xC00000,a1             /* plane A */
+        cmpi.l  #1,d1
+        bne.b   0f
+        lea     0xC00002,a1             /* plane B */
+0:
+        move.w  #0x8F00,4(a0)           /* set INC to 1 */
         move.l  #0x6C000002,d1          /* VDP write VRAM at 0xAC00 (HSCROLL table) */
         move.l  d1,4(a0)                /* write VRAM at hscroll table start */
-        move.w	#223,d1
-2:
-        move.l	d0,(a0)	                /* scroll A = scroll B = 0 */
-        dbra	d1,2b
 
-        move.w  #0x8B03,4(a0)           /* HSCROLL each line */
-        move.w	#0x9003,4(a0)           /* scroll size 128x32 */
+        move.w	d0,(a1)	                /* write hscroll */
+        move.w  #0x8B00,4(a0)           /* HSCROLL the whole plane */
         rts
 
 | void map_plane(int plane, int offset, int height, int ormask);

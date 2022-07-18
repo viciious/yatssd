@@ -276,14 +276,6 @@ int main(void)
 
     init_tilemap(&tm, &Tileset2Map_Map, (uint8_t **)tileset2_Reslist);
 
-    HwMdClearPlanes();
-
-    HwMdSetPlaneBitmap('A', Tileset2Map_Map.mdPlaneABitmap);
-    HwMdSetPlaneBitmap('B', Tileset2Map_Map.mdPlaneBBitmap);
-
-    Hw32xSetBGOverlayPriorityBit(Tileset2Map_Map.mdPlaneABitmap || Tileset2Map_Map.mdPlaneBBitmap);
-    Hw32xSetFGOverlayPriorityBit(0);
-
     Hw32xScreenFlip(0);
 
     while (1) {
@@ -337,6 +329,8 @@ int main(void)
             if (sprmode == 8)
                 sprmode = -1;
         }
+
+        //HwMdHScrollPlane(0, framecount);
 
         Hw32xFlipWait();
 
