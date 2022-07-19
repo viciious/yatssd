@@ -224,13 +224,11 @@ handle_req:
         cmpi.w  #0x05FF,d0
         bls     read_mouse
         cmpi.w  #0x06FF,d0
-        bls     handle_planeA
-        cmpi.w  #0x07FF,d0
-        bls     handle_planeB
-        cmpi.w  #0x08FF,d0
         bls     handle_clrplanes
-        cmpi.w  #0x09FF,d0
-        bls     handle_hscroll
+        cmpi.w  #0x07FF,d0
+        bls     handle_planeBitmap
+        cmpi.w  #0x08FF,d0
+        bls     handle_scroll
 | unknown command
         move.w  #0,0xA15120         /* done */
         bra.b   main_loop
@@ -374,26 +372,14 @@ read_mouse:
         bne.b   4b                  /* wait for SH2 to read mouse value */
         bra     main_loop
 
-handle_planeA:
-        move.l  0xA1512C,d0
-        andi.l  #0x0FFFFF,d0
-        move.l  d0,a0
+handle_planeBitmap:
+        andi.l  #0x0001,d0
+        move.l  0xA1512C,d1
+        andi.l  #0x0FFFFF,d1
+        move.l  d1,a0
         bsr     set_rom_bank
         move.l  a1,-(sp)
-        move.l  #0,-(sp)
-        jsr     set_planeBitmap
-        lea     4(sp),sp
-        movea.l (sp)+,a1
-        move.w  #0,0xA15120         /* done */
-        bra     main_loop
-
-handle_planeB:
-        move.l  0xA1512C,d0
-        andi.l  #0x0FFFFF,d0
-        move.l  d0,a0
-        bsr     set_rom_bank
-        move.l  a1,-(sp)
-        move.l  #1,-(sp)
+        move.l  d0,-(sp)
         jsr     set_planeBitmap
         lea     4(sp),sp
         movea.l (sp)+,a1
@@ -405,14 +391,24 @@ handle_clrplanes:
         move.w  #0,0xA15120         /* done */
         bra     main_loop
 
-handle_hscroll:
+handle_scroll:
         moveq   #0,d1
+        andi.l  #0x0003,d0
+        move.w  0xA15122,d1         /* COMM2 holds scroll amount */
+        btst    #1,d0
+        bne     2f
+1:
         andi.l  #0x0001,d0
-        move.w  0xA15122,d1         /* COMM2 holds hscroll */
         move.l  d1,-(sp)
-        move.l  d0,-(sp)        
+        move.l  d0,-(sp)
         jsr     hscroll_plane
-        lea     8(sp),sp
+        move.w  #0,0xA15120         /* done */
+        bra     main_loop
+2:
+        andi.l  #0x0001,d0
+        move.l  d1,-(sp)
+        move.l  d0,-(sp)
+        jsr     vscroll_plane
         move.w  #0,0xA15120         /* done */
         bra     main_loop
 
@@ -677,7 +673,24 @@ hscroll_plane:
         move.l  d1,4(a0)                /* write VRAM at hscroll table start */
 
         move.w	d0,(a0)	                /* write hscroll */
-        move.w  #0x8B00,4(a0)           /* HSCROLL the whole plane */
+        rts
+
+| void vscroll_plane(int plane, int hscroll);
+| set vertical scroll for plane A or B
+        .global vscroll_plane
+vscroll_plane:
+        move.l  4(sp),d0                /* plane number */
+
+        move.l  #0x40000010,d1          /* plane A VSCROLL */
+        cmpi.l  #1,d0
+        bne.b   0f
+        move.l  #0x40020010,d1          /* plane B VSCROLL */
+0:
+        move.l  8(sp),d0                /* vscroll amount */
+        lea     0xC00000,a0
+        move.l  d1,4(a0)                /* write to VSRAM */
+
+        move.w  d0,(a0)                 /* write vscroll */
         rts
 
 | void map_plane(int plane, int offset, int height, int ormask);
@@ -738,8 +751,8 @@ map_plane:
         move.l	#0x00000000,(a0)        /* scroll A = 0, scroll B = 0 */
         dbra	d1,5b
 
-        move.w  #0x8B03,4(a0)           /* HSCROLL each line */
-        move.w	#0x9003,4(a0)           /* scroll size 128x32 */
+        move.w  #0x8B00,4(a0)           /* SCROLL the whole plane */
+        move.w  #0x9003,4(a0)           /* scroll size 128x32 */
 
         movem.l (sp)+,d2-d4
         rts

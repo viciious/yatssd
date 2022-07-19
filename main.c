@@ -326,8 +326,6 @@ int main(void)
                 sprmode = -1;
         }
 
-        //HwMdHScrollPlane(0, framecount);
-
         Hw32xFlipWait();
 
         clip = display(framecount, hud, fpscount, totaltics, clearhud);

@@ -48,6 +48,7 @@ void Hw32xUpdateLineTable(int hscroll, int vscroll, int lineskip) HW32X_ATTR_DAT
 void HwMdSetPlaneBitmap(char plane, void* data);
 void HwMdClearPlanes(void);
 void HwMdHScrollPlane(char plane, int hscroll);
+void HwMdVScrollPlane(char plane, int hscroll);
 
 void pri_vbi_handler(void) HW32X_ATTR_DATA_ALIGNED;
 void pri_dma1_handler(void) HW32X_ATTR_DATA_ALIGNED;

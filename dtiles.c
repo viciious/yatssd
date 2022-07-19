@@ -491,9 +491,13 @@ int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip)
 
     for (i = 0; i < 2; i++) {
         const dtilelayer_t *mdpl = tm->mdPlane[i];
+
         if (mdpl->bitmap) {
             fixed_t camera_x = FixedMul(fpcamera_x, mdpl->parallax[0])>>16;
+            fixed_t camera_y = FixedMul(fpcamera_y, mdpl->parallax[1])>>16;
+
             HwMdHScrollPlane(i, mdpl->offset[0]+camera_x);
+            HwMdVScrollPlane(i, -mdpl->offset[1]-camera_y);
         }
     }
 

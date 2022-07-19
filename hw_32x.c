@@ -541,43 +541,35 @@ void Hw32xFlipWait(void)
     UNCACHED_CURFB ^= 1;
 }
 
-void HwMdSetPlaneBitmap(char plane, void *data)
-{
-    int cmd = 0x0600;
-
-    if (plane >= 'A' && plane <= 'B')
-        cmd += 0x0100 * (plane-'A');
-    else if (plane >= 0 && plane <= 1)
-        cmd += 0x0100 * plane;
-    else
-        return;
-
-    while (MARS_SYS_COMM0);
-    *(volatile uintptr_t*)&MARS_SYS_COMM12 = (uintptr_t)data;
-    MARS_SYS_COMM0 = cmd;
-    while (MARS_SYS_COMM0);
-}
+#define HwMDPlaneNum(p) ((p) >= 'A' && (p) <= 'B' ? (p)-'A' : ((p) >= 'a' && (p) <= 'b' ? (p)-'a' : (p)&1))
 
 void HwMdClearPlanes(void)
 {
     while (MARS_SYS_COMM0);
-    MARS_SYS_COMM0 = 0x0800;
+    MARS_SYS_COMM0 = 0x0600;
+    while (MARS_SYS_COMM0);
+}
+
+void HwMdSetPlaneBitmap(char plane, void *data)
+{
+    while (MARS_SYS_COMM0);
+    *(volatile uintptr_t*)&MARS_SYS_COMM12 = (uintptr_t)data;
+    MARS_SYS_COMM0 = 0x0700 + HwMDPlaneNum(plane);
     while (MARS_SYS_COMM0);
 }
 
 void HwMdHScrollPlane(char plane, int hscroll)
 {
-    int cmd = 0x0900;
-
-    if (plane >= 'A' && plane <= 'B')
-        cmd += (plane-'A');
-    else if (plane >= 0 && plane <= 1)
-        cmd += plane;
-    else
-        return;
-
     while (MARS_SYS_COMM0);
     MARS_SYS_COMM2 = hscroll;
-    MARS_SYS_COMM0 = cmd;
+    MARS_SYS_COMM0 = 0x0800 + HwMDPlaneNum(plane);
+    while (MARS_SYS_COMM0);
+}
+
+void HwMdVScrollPlane(char plane, int hscroll)
+{
+    while (MARS_SYS_COMM0);
+    MARS_SYS_COMM2 = hscroll;
+    MARS_SYS_COMM0 = 0x0802 + HwMDPlaneNum(plane);
     while (MARS_SYS_COMM0);
 }
