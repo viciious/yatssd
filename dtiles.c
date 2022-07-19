@@ -22,6 +22,7 @@ ATTR_DATA_ALIGNED;
 
 void init_tilemap(tilemap_t *tm, const dtilemap_t *dtm, uint8_t **reslist)
 {
+    int i;
     int tw = dtm->tilew;
     int th = dtm->tileh;
 
@@ -55,11 +56,14 @@ void init_tilemap(tilemap_t *tm, const dtilemap_t *dtm, uint8_t **reslist)
 
     HwMdClearPlanes();
 
-    if (dtm->mdPlaneA.bitmap) {
-        HwMdSetPlaneBitmap('A', dtm->mdPlaneA.bitmap);
-    }
-    if (dtm->mdPlaneB.bitmap) {
-        HwMdSetPlaneBitmap('B', dtm->mdPlaneB.bitmap);
+    for (i = 0; i < 2; i++) {
+        const dtilelayer_t *mdpl = tm->mdPlane[i];
+        if (mdpl) {
+            HwMdSetPlaneBitmap(i, mdpl->bitmap);
+
+            HwMdHScrollPlane(i, mdpl->offset[0]);
+            HwMdVScrollPlane(i, -mdpl->offset[1]);
+        }
     }
 
     Hw32xSetBGOverlayPriorityBit(0);
