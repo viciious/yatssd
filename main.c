@@ -88,8 +88,6 @@ extern drawtilelayerscmd_t slave_drawtilelayerscmd;
 int fpcamera_x, fpcamera_y;
 int fpmoveinc_x = 1<<16, fpmoveinc_y = 1<<16; // in 16.16 fixed point
 
-uint16_t canvas_rebuild_id;
-
 int nodraw = 0;
 int debug = 0;
 int sprmode = -1;
@@ -269,8 +267,6 @@ int main(void)
     totaltics = 0;
 
     fpcamera_x = fpcamera_y = 0;
-
-    canvas_rebuild_id = 1;
 
     buttons = oldbuttons = 0;
 

@@ -56,7 +56,9 @@ typedef struct {
 
     int numtiles;
 
-    int numlayers;
+    uint16_t id;
+    uint16_t numlayers;
+
     dtilelayer_t *layers;
     dtilelayer_t *mdPlane[2];
 

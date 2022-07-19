@@ -5,6 +5,8 @@
 
 drawtilelayerscmd_t slave_drawtilelayerscmd;
 
+static uint16_t global_tilemap_id;
+
 static fixed_t old_camera_x, old_camera_y;
 static fixed_t main_camera_x, main_camera_y;
 
@@ -22,6 +24,8 @@ void init_tilemap(tilemap_t *tm, const dtilemap_t *dtm, uint8_t **reslist)
 {
     int tw = dtm->tilew;
     int th = dtm->tileh;
+
+    tm->id = global_tilemap_id++;
 
     tm->tw = tw;
     tm->th = th;
@@ -392,7 +396,7 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
             Hw32xUpdateLineTable(scroll_x >> 1, scroll_y, 0);
         }
 
-        if (canvas_rebuild_id != *extrafb)
+        if (tm->id != *extrafb)
         {
             uint16_t* p = dirty;
 
@@ -403,7 +407,7 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
                 }
             }
 
-            *extrafb = canvas_rebuild_id;
+            *extrafb = tm->id;
         }
     }
 
