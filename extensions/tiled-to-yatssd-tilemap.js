@@ -196,11 +196,11 @@ var customMapFormat = {
 
             if (layer.isImageLayer) {
                 layerName = "NULL";
-                if (layer.name == "MD_PlaneA") {
+                if (layer.className == "MD_PlaneA") {
                     let res = exportBMPAsHeader(filePath, layer.imageSource);
                     includesData += "#include \"" + res[0] + ".h\"\n";
                     bitmap = "(char *)"+res[1];
-                } else if (layer.name == "MD_PlaneB") {
+                } else if (layer.className == "MD_PlaneB") {
                     let res = exportBMPAsHeader(filePath, layer.imageSource);
                     includesData += "#include \"" + res[0] + ".h\"\n";
                     bitmap = "(char *)"+res[1];
@@ -242,14 +242,15 @@ var customMapFormat = {
 
             let l = "";
             l += "{";
+            l += "{" + dec((layer.offset.x) | 0) + "," + dec((layer.offset.y) | 0) + "},";
             l += "{" + dec((layer.parallaxFactor.x*65536) | 0) + "," + dec((layer.parallaxFactor.y*65536) | 0) + "},";
             l += bitmap + ",";
             l += "(uint16_t *)"+layerName;
             l += "}";
 
-            if (layer.name == "MD_PlaneA") {
+            if (layer.className == "MD_PlaneA") {
                 planeA = l
-            } else if (layer.name == "MD_PlaneB") {
+            } else if (layer.className == "MD_PlaneB") {
                 planeB = l
             } else {
                 layerData += l + ",\n";

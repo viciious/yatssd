@@ -396,9 +396,9 @@ handle_scroll:
         andi.l  #0x0003,d0
         move.w  0xA15122,d1         /* COMM2 holds scroll amount */
         btst    #1,d0
-        andi.l  #0x0001,d0
         bne     2f
 1:
+        andi.l  #0x0001,d0
         move.l  d1,-(sp)
         move.l  d0,-(sp)
         jsr     hscroll_plane
@@ -406,6 +406,7 @@ handle_scroll:
         move.w  #0,0xA15120         /* done */
         bra     main_loop
 2:
+        andi.l  #0x0001,d0
         move.l  d1,-(sp)
         move.l  d0,-(sp)
         jsr     vscroll_plane
