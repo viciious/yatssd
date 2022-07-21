@@ -242,7 +242,7 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
 
             id = stid;
             x = xx;
-            for (tile = t1; tile <= t2; tile++)
+            for (tile = t1; tile <= t2; tile += 2)
             {
                 uint16_t idx = layer[tile];
                 if (dirty[id] != idx)
@@ -261,7 +261,8 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
                     dirty[id] = idx;
                 }
 
-                id++;
+                id += 2;
+                x += w;
                 x += w;
             }
 
@@ -358,10 +359,6 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
     if (end_tile >= tm->numtiles)
         end_tile = tm->numtiles-1;
 
-    int half_tiles_hor = (end_tile_hor - start_tile_hor) >> 1;
-    if (half_tiles_hor < 0)
-        half_tiles_hor = 0;
-
     int canvas_tiles_hor = tm->canvas_tiles_hor;
     int canvas_tiles_ver = tm->canvas_tiles_ver;
 
@@ -422,7 +419,7 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
     cmd.start_tile = start_tile;
     cmd.end_tile = end_tile;
     cmd.scroll_tile_id = (start_tile_ver - top_scroll_tile_ver) * canvas_tiles_hor + (start_tile_hor - top_scroll_tile_hor);
-    cmd.num_tiles_x = half_tiles_hor;
+    cmd.num_tiles_x = end_tile_hor - start_tile_hor;
     cmd.startlayer = layer;
     cmd.numlayers = numlayers;
     cmd.camera_x = camera_x, cmd.camera_y = camera_y;
@@ -433,12 +430,12 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
     }
 
     scmd->tm = tm;
-    scmd->x = xx + half_tiles_hor * w;
+    scmd->x = xx + w;
     scmd->y = yy;
-    scmd->start_tile = start_tile + half_tiles_hor;
+    scmd->start_tile = start_tile + 1;
     scmd->end_tile = end_tile;
-    scmd->scroll_tile_id = cmd.scroll_tile_id + half_tiles_hor;
-    scmd->num_tiles_x = end_tile_hor - start_tile_hor - half_tiles_hor;
+    scmd->scroll_tile_id = cmd.scroll_tile_id + 1;
+    scmd->num_tiles_x = cmd.num_tiles_x - 1;
     scmd->startlayer = layer;
     scmd->numlayers = numlayers;
     scmd->camera_x = camera_x, scmd->camera_y = camera_y;
