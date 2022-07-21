@@ -189,7 +189,6 @@ int display(int framecount, int hudenable, int fpscount, int totaltics, int clea
     {
         maxdrawcnt = drawcnt;
     }
-    total = Mars_GetFRTCounter() - start;
 
     draw_setScissor(0, 0, 320, 224);
 
@@ -207,6 +206,8 @@ int display(int framecount, int hudenable, int fpscount, int totaltics, int clea
         }
         draw_pivot_stretch_sprite(160, 112, 32, 32, test32x32_trans_smileData, DRAWSPR_SCALE | mode, 0x10000 + ((start * 16) & 0xffff));
     }
+
+    total = Mars_GetFRTCounter() - start;
 
     Hw32xScreenSetXY(0, 23);
 
