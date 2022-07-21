@@ -35,14 +35,14 @@ static volatile unsigned int mars_vblank_count = 0;
 
 volatile unsigned short currentFB = 0;
 
-uint32_t canvas_width = 320+4; // +4 to avoid hitting that 0xXXFF bug in the shift register
+uint32_t canvas_width = 320;
 uint32_t canvas_height = 224;
 
-// 384 seems to be the ideal value - anything thing 
+// 384 seems to be the sweet spot - any other value 
 // increases the odds of hitting the "0xFF screen shift
 // register bug"
 uint32_t canvas_pitch = 384; // canvas_width + scrollwidth
-uint32_t canvas_yaw = 288; // canvas_height + scrollheight
+uint32_t canvas_yaw = 256; // canvas_height + scrollheight
 
 #define UNCACHED_CURFB (*(short *)((int)&currentFB|0x20000000))
 
