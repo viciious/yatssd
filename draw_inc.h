@@ -169,9 +169,7 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
         return;
     }
 
-    if (!(hw & 7)) {
-        PIX_LOOP(8);
-    } else if (!(hw & 3)) {
+    if (!(hw & 3)) {
         PIX_LOOP(4);
     } else if (!(hw & 1)) {
         PIX_LOOP(2);
@@ -334,9 +332,7 @@ void DFUNC(_sprite8_flip1)(DUINT* fb, drawsprcmd_t* cmd)
         return;
     }
 
-    if (!(hw & 7)) {
-        PIX_LOOP(8);
-    } else if (!(hw & 3)) {
+    if (!(hw & 3)) {
         PIX_LOOP(4);
     } else if (!(hw & 1)) {
         PIX_LOOP(2);
