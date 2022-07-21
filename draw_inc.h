@@ -131,7 +131,7 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
         unsigned i, count, nn;
 
         count = (hw - 1) >> 1;
-        nn = (count + 15) >> 4;
+        nn = (count + 7) >> 3;
 
         for (i = 0; i < h; i++) {
             uint16_t* d = (uint16_t*)(td + 1);
@@ -147,17 +147,9 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
 
 #define DO_PIXEL() do { *d++ = sp >> 16; sp = (sp << 16) | (*s++ << 8); } while (0)
 
-            switch (count & 15)
+            switch (count & 7)
             {
             case 0: do { DO_PIXEL();
-            case 15:     DO_PIXEL();
-            case 14:     DO_PIXEL();
-            case 13:     DO_PIXEL();
-            case 12:     DO_PIXEL();
-            case 11:     DO_PIXEL();
-            case 10:     DO_PIXEL();
-            case 9:      DO_PIXEL();
-            case 8:      DO_PIXEL();
             case 7:      DO_PIXEL();
             case 6:      DO_PIXEL();
             case 5:      DO_PIXEL();
@@ -212,7 +204,7 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
     hw = cmd->w >> DUINT_RSH;
     hsw = cmd->sw >> DUINT_RSH;
     hdw = canvas_pitch >> DUINT_RSH;
-    nn = (hw + 15) >> 4;
+    nn = (hw + 7) >> 3;
     if (hw == 0)
         return;
 
@@ -237,17 +229,9 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
 #define DO_PIXEL() do { *d++ = s[(u >> 16) & umask]; u += step; } while (0)
 
         u = ustart;
-        switch (hw & 15)
+        switch (hw & 7)
 	    {
 	    case 0: do { DO_PIXEL();
-        case 15:     DO_PIXEL();
-        case 14:     DO_PIXEL();
-        case 13:     DO_PIXEL();
-        case 12:     DO_PIXEL();
-        case 11:     DO_PIXEL();
-        case 10:     DO_PIXEL();
-        case 9:      DO_PIXEL();
-        case 8:      DO_PIXEL();
         case 7:      DO_PIXEL();
 	    case 6:      DO_PIXEL();
 	    case 5:      DO_PIXEL();
@@ -312,7 +296,7 @@ void DFUNC(_sprite8_flip1)(DUINT* fb, drawsprcmd_t* cmd)
         unsigned i, count, nn;
 
         count = (hw - 1) >> 1;
-        nn = (count + 15) >> 4;
+        nn = (count + 7) >> 3;
 
         for (i = 0; i < h; i++) {
             uint16_t* d = (uint16_t*)(td);
@@ -328,17 +312,9 @@ void DFUNC(_sprite8_flip1)(DUINT* fb, drawsprcmd_t* cmd)
 
 #define DO_PIXEL() do { uint16_t b = sp>>16; __asm ("swap.b %0, %0\n\t" : "+r" (b)); *--d = b; sp <<= 16; sp |= *s++ << 8; } while (0)
 
-            switch (count & 15)
+            switch (count & 7)
             {
             case 0: do { DO_PIXEL();
-            case 15:     DO_PIXEL();
-            case 14:     DO_PIXEL();
-            case 13:     DO_PIXEL();
-            case 12:     DO_PIXEL();
-            case 11:     DO_PIXEL();
-            case 10:     DO_PIXEL();
-            case 9:      DO_PIXEL();
-            case 8:      DO_PIXEL();
             case 7:      DO_PIXEL();
             case 6:      DO_PIXEL();
             case 5:      DO_PIXEL();
@@ -393,7 +369,7 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd)
     hw = cmd->w >> DUINT_RSH;
     hsw = cmd->sw >> DUINT_RSH;
     hdw = canvas_pitch >> DUINT_RSH;
-    nn = (hw + 15) >> 4;
+    nn = (hw + 7) >> 3;
     if (hw == 0)
         return;
 
@@ -419,17 +395,9 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd)
 #define DO_PIXEL() do { DUINT b = s[(u >> 16) & umask]; u += step; DSWAP_BYTE(b); *--d = b; } while (0)
 
         u = ustart;
-        switch (hw & 15)
+        switch (hw & 7)
 	    {
 	    case 0: do { DO_PIXEL();
-        case 15:     DO_PIXEL();
-        case 14:     DO_PIXEL();
-        case 13:     DO_PIXEL();
-        case 12:     DO_PIXEL();
-        case 11:     DO_PIXEL();
-        case 10:     DO_PIXEL();
-        case 9:      DO_PIXEL();
-        case 8:      DO_PIXEL();
         case 7:      DO_PIXEL();
 	    case 6:      DO_PIXEL();
 	    case 5:      DO_PIXEL();
