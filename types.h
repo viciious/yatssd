@@ -103,7 +103,6 @@ typedef struct {
     uint16_t scroll_tile_id;
     uint16_t num_tiles_x;
     uint16_t drawmode;
-    uint16_t drawcnt;
 } drawtilelayerscmd_t;
 
 typedef void(*draw_spritefn_t)(void *dst, drawsprcmd_t* cmd);

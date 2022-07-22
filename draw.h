@@ -36,7 +36,7 @@ void init_tilemap(tilemap_t *tm, const dtilemap_t *dtm, uint8_t **reslist);
 
 void set_tilemap_wrap(tilemap_t *tm, fixed_t wrapX, fixed_t wrapY);
 
-void draw_handle_layercmd(drawtilelayerscmd_t* cmd)
+int draw_handle_layercmd(drawtilelayerscmd_t* cmd)
 ATTR_DATA_ALIGNED;
 
 int draw_tilemap(tilemap_t* tm, int fpcamera_x, int fpcamera_y, int *cameraclip)

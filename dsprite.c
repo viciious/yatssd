@@ -112,7 +112,7 @@ static int draw_clipsprite(int x, int y, int w, int h, int sw, int sh,
         scmd->sdata = (void*)data;
         scmd->scale = scale;
 
-        MARS_SYS_COMM4 = 3;
+        MARS_SYS_COMM4 = 2;
     }
 
     draw_handle_drawspritecmd(&cmd);

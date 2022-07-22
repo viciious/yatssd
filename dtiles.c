@@ -12,12 +12,23 @@ static fixed_t main_camera_x, main_camera_y;
 
 static fixed_t camera_x, camera_y;
 
+static char tile_lock;
+
 static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, 
 int fpcamera_y, int numlayers, int *pclipped)
 ATTR_DATA_ALIGNED;
 
 static int draw_drawtile(int x, int y, int w, int h,
     const uint8_t* data, int flags, void* fb, draw_spritefn_t fn)
+ATTR_DATA_ALIGNED;
+
+static void lock_tiles(void)
+ATTR_DATA_ALIGNED;
+
+static void unlock_tiles(void)
+ATTR_DATA_ALIGNED;
+
+static int get_next_tile(void)
 ATTR_DATA_ALIGNED;
 
 void init_tilemap(tilemap_t *tm, const dtilemap_t *dtm, uint8_t **reslist)
@@ -158,9 +169,40 @@ static int draw_drawtile(int x, int y, int w, int h,
     return 1;
 }
 
-void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
+static void lock_tiles(void)
+{
+    int res;
+    do {
+        __asm volatile (\
+            "tas.b %1\n\t" \
+            "movt %0\n\t" \
+            : "=&r" (res) \
+            : "m" (tile_lock) \
+            );
+    } while (res == 0);
+}
+
+static void unlock_tiles(void)
+{
+    tile_lock = 0;
+}
+
+static int get_next_tile(void)
+{
+    int n;
+
+    lock_tiles();
+    n = MARS_SYS_COMM6;
+    MARS_SYS_COMM6 = n + 1;
+    unlock_tiles();
+
+    return n;
+}
+
+int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
 {
     int l;
+    int i, n;
     int x, y;
     tilemap_t* tm = cmd->tm;
     const int w = tm->tw, h = tm->th;
@@ -176,6 +218,9 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
     int curdrawmode = cmd->drawmode;
     draw_spritefn_t fn = draw_spritefn(curdrawmode);
     int drawcnt = 0;
+
+    i = 0;
+    n = get_next_tile();
 
     if (cmd->startlayer != 0)
     {
@@ -197,14 +242,21 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
 
             for (tile = t1; tile <= t2; tile++)
             {
-                uint16_t idx = layer[tile];
-                if (idx != 0)
+                if (i == n)
                 {
-                    const uint8_t* res = reslist[(idx >> 2)];
-                    //if (debug) res = reslist[0];
-                    draw_sprite(x, y, w, h, res, drawmode | (idx & 3), 1);
-                    drawcnt++;
+                    uint16_t idx = layer[tile];
+                    if (idx != 0)
+                    {
+                        const uint8_t* res = reslist[(idx >> 2)];
+                        //if (debug) res = reslist[1];
+
+                        draw_sprite(x, y, w, h, res, drawmode | (idx & 3), 1);
+                        drawcnt++;
+                    }
+                    n = get_next_tile();
                 }
+
+                i++;
                 id++;
                 x += w;
             }
@@ -214,8 +266,8 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
             if (y >= yy + scroll_y + canvas_height)
                 break;
         }
-        cmd->drawcnt = drawcnt;
-        return;
+
+        return drawcnt;
     }
 
     for (l = 0; l < cmd->numlayers; l++)
@@ -242,27 +294,30 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
 
             id = stid;
             x = xx;
-            for (tile = t1; tile <= t2; tile += 2)
+            for (tile = t1; tile <= t2; tile++)
             {
-                uint16_t idx = layer[tile];
-                if (dirty[id] != idx)
+                if (i == n)
                 {
-                    if (idx != 0 || !l)
+                    uint16_t idx = layer[tile];
+                    if (dirty[id] != idx)
                     {
-                        int tiledrawmode;
-                        const uint8_t* res = reslist[(idx >> 2)];
+                        if (idx != 0 || !l)
+                        {
+                            const uint8_t* res = reslist[(idx >> 2)];
+                            int tiledrawmode = drawmode | (idx & 3);
+                            //if (debug) res = reslist[1];
 
-                        tiledrawmode = drawmode | (idx & 3);
-                        fn = draw_spritefn(tiledrawmode);
-
-                        draw_drawtile(x, y, w, h, res, tiledrawmode, fb, fn);
-                        drawcnt++;
+                            fn = draw_spritefn(tiledrawmode);
+                            draw_drawtile(x, y, w, h, res, tiledrawmode, fb, fn);
+                            drawcnt++;
+                        }
+                        dirty[id] = idx;
                     }
-                    dirty[id] = idx;
+                    n = get_next_tile();
                 }
 
-                id += 2;
-                x += w;
+                i++;
+                id++;
                 x += w;
             }
 
@@ -275,7 +330,7 @@ void draw_handle_layercmd(drawtilelayerscmd_t *cmd)
         layer++;
     }
 
-    cmd->drawcnt = drawcnt;
+    return drawcnt;
 }
 
 static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamera_y, int numlayers, int *pclipped)
@@ -284,6 +339,7 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
     int w = tm->tw, h = tm->th;
     const fixed_t *plx = tm->layers[layer].parallax;
     int clipped = 0;
+    int drawcnt;
 
     camera_x = FixedMul(fpcamera_x, plx[0])>>16;
     camera_y = FixedMul(fpcamera_y, plx[1])>>16;
@@ -412,30 +468,14 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
         }
     }
 
-    drawtilelayerscmd_t cmd, *scmd = &slave_drawtilelayerscmd;
-    cmd.tm = tm;
-    cmd.x = xx;
-    cmd.y = yy;
-    cmd.start_tile = start_tile;
-    cmd.end_tile = end_tile;
-    cmd.scroll_tile_id = (start_tile_ver - top_scroll_tile_ver) * canvas_tiles_hor + (start_tile_hor - top_scroll_tile_hor);
-    cmd.num_tiles_x = end_tile_hor - start_tile_hor;
-    cmd.startlayer = layer;
-    cmd.numlayers = numlayers;
-    cmd.camera_x = camera_x, cmd.camera_y = camera_y;
-    if (layer == 0) {
-        cmd.drawmode = 0;
-    } else{
-        cmd.drawmode = DRAWSPR_PRECISE|DRAWSPR_OVERWRITE;
-    }
-
+    drawtilelayerscmd_t *scmd = &slave_drawtilelayerscmd;
     scmd->tm = tm;
-    scmd->x = xx + w;
+    scmd->x = xx;
     scmd->y = yy;
-    scmd->start_tile = start_tile + 1;
+    scmd->start_tile = start_tile;
     scmd->end_tile = end_tile;
-    scmd->scroll_tile_id = cmd.scroll_tile_id + 1;
-    scmd->num_tiles_x = cmd.num_tiles_x - 1;
+    scmd->scroll_tile_id = (start_tile_ver - top_scroll_tile_ver) * canvas_tiles_hor + (start_tile_hor - top_scroll_tile_hor);
+    scmd->num_tiles_x = end_tile_hor - start_tile_hor;
     scmd->startlayer = layer;
     scmd->numlayers = numlayers;
     scmd->camera_x = camera_x, scmd->camera_y = camera_y;
@@ -445,17 +485,17 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
         scmd->drawmode = DRAWSPR_PRECISE|DRAWSPR_OVERWRITE;
     }
 
-    while (MARS_SYS_COMM4 != 0) {}
-    MARS_SYS_COMM4 = 5;
+    while (MARS_SYS_COMM4 != 0);
+    MARS_SYS_COMM6 = 0;
+    MARS_SYS_COMM4 = 3;
 
-    draw_handle_layercmd(&cmd);
-
-    while (MARS_SYS_COMM4 != 0) {}
-
-    ClearCacheLines(&scmd->drawcnt, 1);
+    drawcnt = draw_handle_layercmd(scmd);
+    while (MARS_SYS_COMM4 == 3);
+    drawcnt += ((MARS_SYS_COMM4 >> 2) - 1);
+    MARS_SYS_COMM4 = 4;
 
     *pclipped = clipped;
-    return cmd.drawcnt + scmd->drawcnt;
+    return drawcnt;
 }
 
 int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip)

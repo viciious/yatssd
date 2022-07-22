@@ -121,19 +121,17 @@ int Mars_GetFRTCounter(void)
 
 int slave_task(int cmd)
 {
+    int drawcnt;
+
     switch (cmd) {
     case 1:
         snddma_slave_init(22050);
         return 1;
     case 2:
-        return 1;
-    case 3:
         ClearCacheLines(&slave_drawsprcmd, (sizeof(drawsprcmd_t) + 31) / 16);
         draw_handle_drawspritecmd(&slave_drawsprcmd);
         return 1;
-    case 4:
-        return 1;
-    case 5:
+    case 3:
         ClearCacheLines((uintptr_t)&canvas_width & ~15, 1);
         ClearCacheLines((uintptr_t)&canvas_height & ~15, 1);
         ClearCacheLines((uintptr_t)&window_canvas_x & ~15, 1);
@@ -142,7 +140,12 @@ int slave_task(int cmd)
         ClearCacheLines((uintptr_t)&nodraw & ~15, 1);
         ClearCacheLines(&slave_drawtilelayerscmd, (sizeof(drawtilelayerscmd_t) + 31) / 16);
         ClearCacheLines(&tm, (sizeof(tilemap_t) + 31) / 16);
-        draw_handle_layercmd(&slave_drawtilelayerscmd);
+        drawcnt = draw_handle_layercmd(&slave_drawtilelayerscmd);
+        drawcnt = ((drawcnt + 1) << 2) | MARS_SYS_COMM4;
+        MARS_SYS_COMM4 = drawcnt;
+        while (MARS_SYS_COMM4 == drawcnt);
+        return 1;
+    case 4:
         return 1;
     default:
         break;
@@ -158,7 +161,7 @@ void secondary(void)
     while (1) {
         int cmd;
 
-        while ((cmd = MARS_SYS_COMM4) == 0) {}
+        while ((cmd = MARS_SYS_COMM4) == 0);
 
         int res = slave_task(cmd);
         if (res > 0) {
