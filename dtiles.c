@@ -335,7 +335,7 @@ int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
 static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamera_y, int numlayers, int *pclipped)
 {
     int x, y;
-    int w = tm->tw, h = tm->th;
+    unsigned w = tm->tw, h = tm->th;
     const fixed_t *plx = tm->layers[layer].parallax;
     int clipped = 0;
     int drawcnt;
@@ -390,19 +390,16 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
     int tiles_hor = tm->tiles_hor;
     int tiles_ver = tm->tiles_ver;
 
-    int start_tile_hor = camera_x / w;
-    if (start_tile_hor < 0) start_tile_hor = 0;
+    int start_tile_hor = (unsigned)camera_x / w;
     if (start_tile_hor >= tiles_hor) return 0;
 
-    int start_tile_ver = camera_y / h;
-    if (start_tile_ver < 0) start_tile_ver = 0;
+    int start_tile_ver = (unsigned)camera_y / h;
     if (start_tile_ver >= tiles_ver) return 0;
 
-    int end_tile_hor = (camera_x + w - 1 + canvas_width) / w;
-    if (end_tile_hor < 0) end_tile_hor = 0;
+    int end_tile_hor = ((unsigned)camera_x + w - 1 + canvas_width) / w;
     if (end_tile_hor > tiles_hor) end_tile_hor = tiles_hor;
 
-    int end_tile_ver = (camera_y + h - 1 + canvas_height) / h;
+    int end_tile_ver = ((unsigned)camera_y + h - 1 + canvas_height) / h;
     if (end_tile_ver < 1) end_tile_ver = 1;
     if (end_tile_ver > tiles_ver) end_tile_ver = tiles_ver;
 
@@ -417,7 +414,7 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
     int canvas_tiles_hor = tm->canvas_tiles_hor;
     int canvas_tiles_ver = tm->canvas_tiles_ver;
 
-    int scroll_x, scroll_y;
+    unsigned scroll_x, scroll_y;
 
     int xx, yy;
 
