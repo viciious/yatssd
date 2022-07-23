@@ -42,12 +42,13 @@ void DFUNC(_sprite8_scale_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd) __attribute
 
 #define PIX_LOOP(n) do { \
         unsigned i, j, k; \
-        for (i = 0; i < h; i++) { \
+        for (i = h; i > 0; i--) { \
             DUINT *d = td; \
             const DUINT *s = ts; \
-            for (j = 0; j < hw; ) { \
-                for (k = 0; k < n; k++, j++) { \
+            for (j = hw; j > 0; ) { \
+                for (k = n; k > 0; k--) { \
                     *d++ = *s++; \
+                    j--; \
                 } \
             } \
             ts += hsw; \
@@ -58,13 +59,14 @@ void DFUNC(_sprite8_scale_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd) __attribute
 #if 1
 #define PIX_LOOP2(n) do { \
         unsigned i, j, k; \
-        for (i = 0; i < h; i++) { \
+        for (i = h; i > 0; i--) { \
             int *d = (int *)td; \
             const int *s = (const int *)ts; \
-            for (j = 0; j < hw; ) { \
-                for (k = 0; k < n>>2; k++, j+=4) { \
+            for (j = hw>>2; j > 0; ) { \
+                for (k = n>>2; k > 0; k--) { \
                     *d++ = *s++; \
                     *d++ = *s++; \
+                    j--; \
                 } \
             } \
             ts += hsw; \
@@ -133,7 +135,7 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
         count = (hw - 1) >> 1;
         nn = (count + 7) >> 3;
 
-        for (i = 0; i < h; i++) {
+        for (i = h; i > 0; i--) {
             uint16_t* d = (uint16_t*)(td + 1);
             const uint16_t* s = (const uint16_t*)ts;
             uint32_t sp;
@@ -219,7 +221,7 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
     step = SH2_DIVU_DVDNTL; // get 32-bit quotient
 
     v = cmd->sy << 16;
-    for (i = 0; i < h; i++) {
+    for (i = h; i > 0; i--) {
         const DUINT* s = ts + ((v >> 16) & vmask) * hsw;
         DUINT* d = td;
         unsigned n = nn;
@@ -249,14 +251,15 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
 
 #define PIX_LOOP(n)  do { \
         unsigned i, j, k; \
-        for (i = 0; i < h; i++) { \
+        for (i = h; i > 0; i--) { \
             DUINT *d = td + 1, b; \
             const DUINT *s = ts; \
-            for (j = 0; j < hw; ) { \
-                for (k = 0; k < n; k++, j++) { \
+            for (j = hw; j > 0; ) { \
+                for (k = n; k > 0; k--) { \
                     b = *s++; \
                     DSWAP_BYTE(b); \
                     *--d = b; \
+                    j--; \
                 } \
             } \
             ts += hsw; \
@@ -296,7 +299,7 @@ void DFUNC(_sprite8_flip1)(DUINT* fb, drawsprcmd_t* cmd)
         count = (hw - 1) >> 1;
         nn = (count + 7) >> 3;
 
-        for (i = 0; i < h; i++) {
+        for (i = h; i > 0; i--) {
             uint16_t* d = (uint16_t*)(td);
             const uint16_t* s = (const uint16_t*)ts;
             uint32_t sp;
@@ -383,7 +386,7 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd)
     step = SH2_DIVU_DVDNTL; // get 32-bit quotient
 
     v = cmd->sy << 16;
-    for (i = 0; i < h; i++) {
+    for (i = h; i > 0; i--) {
         const DUINT* s = ts + ((v >> 16) & vmask) * hsw;
         DUINT* d = td + 1;
         unsigned n = nn;
