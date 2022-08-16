@@ -36,6 +36,7 @@ typedef struct {
     fixed_t parallax[2];
     char* bitmap;
     uint16_t *tiles;
+    int objectLayer;
 } dtilelayer_t;
 
 // "on-disk" tilemap
@@ -96,7 +97,7 @@ typedef struct {
 typedef struct {
     tilemap_t* tm;
     int16_t startlayer;
-    int16_t numlayers;
+    uint16_t parallax;
     int32_t camera_x, camera_y;
     int16_t x, y;
     uint16_t start_tile, end_tile;

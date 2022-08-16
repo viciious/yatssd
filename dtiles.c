@@ -3,9 +3,19 @@
 #include "draw.h"
 #include "hw_32x.h"
 
+typedef struct
+{
+    tilemap_t *tm;
+    fixed_t fpcamera_x, fpcamera_y;
+    void (*drawspr)(int l, void *p);
+    void *sprp;
+    int sprites_drawn;
+    int parallax;
+} drawtilecontext_t;
+
 drawtilelayerscmd_t slave_drawtilelayerscmd;
 
-static uint16_t global_tilemap_id;
+static uint16_t global_tilemap_id = 1;
 
 static fixed_t old_camera_x, old_camera_y;
 static fixed_t main_camera_x, main_camera_y;
@@ -14,8 +24,7 @@ static fixed_t camera_x, camera_y;
 
 static char tile_lock;
 
-static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, 
-int fpcamera_y, int numlayers, int *pclipped)
+static int draw_tile_layer(drawtilecontext_t *dc, int layer, int *pclipped)
 ATTR_DATA_ALIGNED;
 
 static int draw_drawtile(int x, int y, int w, int h,
@@ -201,7 +210,6 @@ static int get_next_tile(void)
 
 int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
 {
-    int l;
     int i, n;
     int x, y;
     tilemap_t* tm = cmd->tm;
@@ -221,12 +229,16 @@ int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
     i = 0;
     n = get_next_tile();
 
-    if (cmd->startlayer != 0)
+    if (cmd->startlayer != 0 && cmd->parallax)
     {
-        const uint16_t* layer = tm->layers[cmd->startlayer].tiles;
+        const dtilelayer_t *tl = &tm->layers[cmd->startlayer];
+        const uint16_t* layer = tl->tiles;
         int y_tile;
         int stid = scroll_tile_id;
         int drawmode = cmd->drawmode;
+
+        if (tl->objectLayer)
+            return 0;
 
         y = yy;
         for (y_tile = start_tile; y_tile < end_tile; y_tile += tm->tiles_hor)
@@ -268,20 +280,24 @@ int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
 
         return drawcnt;
     }
-
-    for (l = 0; l < cmd->numlayers; l++)
+    else
     {
         int drawmode = cmd->drawmode;
-        const uint16_t* layer = tm->layers[cmd->startlayer+l].tiles;
+        int l = cmd->startlayer;
+        const dtilelayer_t *tl = &tm->layers[l];
+        const uint16_t* layer = tl->tiles;
         int y_tile;
         int stid = scroll_tile_id;
         void* fb;
 
+        if (tl->objectLayer)
+            return 0;
+
         if (l > 0)
             drawmode |= DRAWSPR_PRECISE | DRAWSPR_OVERWRITE;
-        if (!(xx & 1))
+        if (!((xx+window_canvas_x) & 1))
             drawmode &= ~DRAWSPR_PRECISE;
-        fb = (void*)(drawmode & DRAWSPR_OVERWRITE ? &MARS_OVERWRITE_IMG : &MARS_FRAMEBUFFER + 0x100);
+        fb = (void*)((drawmode & DRAWSPR_OVERWRITE ? &MARS_OVERWRITE_IMG : &MARS_FRAMEBUFFER) + 0x100);
 
         y = yy;
         for (y_tile = start_tile; y_tile < end_tile; y_tile += tm->tiles_hor)
@@ -300,17 +316,21 @@ int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
                     uint16_t idx = layer[tile];
                     if (dirty[id] != idx)
                     {
-                        if (idx != 0 || !l)
+                        if (idx != 0 || l == 0)
                         {
+                            if (l > 0)
+                                dirty[id] = dirty[id] == 0 ? idx : UINT16_MAX;
+                            else
+                                dirty[id] = idx;
+
                             const uint8_t* res = reslist[(idx >> 2)];
                             int tiledrawmode = drawmode | (idx & 3);
-                            //if (debug) res = reslist[1];
+                            /*if (debug) res = reslist[1];*/
 
                             fn = draw_spritefn(tiledrawmode);
                             draw_drawtile(x, y, w, h, res, tiledrawmode, fb, fn);
                             drawcnt++;
                         }
-                        dirty[id] = idx;
                     }
                     n = get_next_tile();
                 }
@@ -325,23 +345,33 @@ int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
             if (y >= canvas_pitch)
                 break;
         }
-
-        layer++;
     }
 
     return drawcnt;
 }
 
-static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamera_y, int numlayers, int *pclipped)
+static int draw_tile_layer(drawtilecontext_t *dc, int layer, int *pclipped)
 {
     int x, y;
+    tilemap_t *tm = dc->tm;
+    const dtilelayer_t *tl = &tm->layers[layer];
     unsigned w = tm->tw, h = tm->th;
     const fixed_t *plx = tm->layers[layer].parallax;
     int clipped = 0;
     int drawcnt;
 
-    camera_x = FixedMul(fpcamera_x, plx[0])>>16;
-    camera_y = FixedMul(fpcamera_y, plx[1])>>16;
+    if (tl->objectLayer)
+    {
+        *pclipped = 0;
+        if (!dc->drawspr)
+            return 0;
+        dc->drawspr(tl->objectLayer, dc->sprp);
+        dc->sprites_drawn = 1;
+        return 0;
+    }
+
+    camera_x = FixedMul(dc->fpcamera_x, plx[0])>>16;
+    camera_y = FixedMul(dc->fpcamera_y, plx[1])>>16;
 
     if (camera_x < 0)
     {
@@ -372,7 +402,7 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
     int scroll_count_hor = 0, scroll_count_ver = 0;
     int top_scroll_tile_hor = 0, top_scroll_tile_ver = 0;
 
-    if (layer == 0)
+    if (layer == 0 || !dc->parallax)
     {
         scroll_tiles_hor = tm->scroll_tiles_hor;
         scroll_interval_hor = tm->scroll_interval_hor;
@@ -473,13 +503,13 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
     scmd->scroll_tile_id = (start_tile_ver - top_scroll_tile_ver) * canvas_tiles_hor + (start_tile_hor - top_scroll_tile_hor);
     scmd->num_tiles_x = end_tile_hor - start_tile_hor;
     scmd->startlayer = layer;
-    scmd->numlayers = numlayers;
     scmd->camera_x = camera_x, scmd->camera_y = camera_y;
     if (layer == 0) {
         scmd->drawmode = 0;
     } else{
         scmd->drawmode = DRAWSPR_PRECISE|DRAWSPR_OVERWRITE;
     }
+    scmd->parallax = dc->parallax;
 
     while (MARS_SYS_COMM4 != 0);
     MARS_SYS_COMM6 = 0;
@@ -494,12 +524,13 @@ static int draw_tile_layer(tilemap_t *tm, int layer, int fpcamera_x, int fpcamer
     return drawcnt;
 }
 
-int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip)
+int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip, void (*drawspr)(int l, void *p), void *sprp)
 {
     int i;
     int clip, drawcnt;
     char parallax;
     const fixed_t *bplx = tm->layers[0].parallax;
+    drawtilecontext_t dc;
 
     *cameraclip = 0;
     old_camera_x = main_camera_x;
@@ -518,7 +549,8 @@ int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip)
     parallax = 0;
     for (i = 1; i < tm->numlayers; i++)
     {
-        const fixed_t *tplx = tm->layers[i].parallax;
+        const dtilelayer_t *tl = &tm->layers[i];
+        const fixed_t *tplx = tl->parallax;
         if (tplx[0] != bplx[0] || tplx[1] != bplx[1])
         {
             parallax = 1;
@@ -538,12 +570,23 @@ int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip)
         }
     }
 
-    if (!parallax)
-        return draw_tile_layer(tm, 0, fpcamera_x, fpcamera_y, tm->numlayers, cameraclip);
+    dc.tm = tm;
+    dc.fpcamera_x = fpcamera_x;
+    dc.fpcamera_y = fpcamera_y;
+    dc.drawspr = drawspr;
+    dc.sprp = sprp;
+    dc.sprites_drawn = 0;
+    dc.parallax = parallax;
 
-    drawcnt = draw_tile_layer(tm, 0, fpcamera_x, fpcamera_y, 1, cameraclip);
+    drawcnt = draw_tile_layer(&dc, 0, cameraclip);
     for (i = 1; i < tm->numlayers; i++)
-        drawcnt += draw_tile_layer(tm, i, fpcamera_x, fpcamera_y, 1, &clip);
+        drawcnt += draw_tile_layer(&dc, i, &clip);
+
+    if (drawspr && !dc.sprites_drawn)
+    {
+        drawspr(1, sprp);
+        dc.sprites_drawn = 1;
+    }
 
     return drawcnt;
 }

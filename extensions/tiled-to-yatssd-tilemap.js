@@ -185,6 +185,7 @@ var customMapFormat = {
         for (let i = 0; i < map.layerCount; ++i) {
             let layer = map.layerAt(i);
             let bitmap = "NULL";
+            let objectLayer = 0;
 
             // Replace special characters for an underscore
             let layerName = layer.name.replace(/[^a-zA-Z0-9-_]/g, "_");
@@ -238,6 +239,9 @@ var customMapFormat = {
                 tileData += "};\n";
 
                 numLayers++
+            } else if (layer.isObjectLayer) {
+                objectLayer = 1;
+                numLayers++
             }
 
             let l = "";
@@ -245,7 +249,16 @@ var customMapFormat = {
             l += "{" + dec((layer.offset.x) | 0) + "," + dec((layer.offset.y) | 0) + "},";
             l += "{" + dec((layer.parallaxFactor.x*65536) | 0) + "," + dec((layer.parallaxFactor.y*65536) | 0) + "},";
             l += bitmap + ",";
-            l += "(uint16_t *)"+layerName;
+            if (objectLayer == 0)
+            {
+                l += "(uint16_t *)"+layerName + ",";
+                l += "0";
+            }
+            else
+            {
+                l += "(uint16_t *)NULL,";
+                l += objectLayer.toString();
+            }
             l += "}";
 
             if (layer.className == "MD_PlaneA") {

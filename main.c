@@ -170,28 +170,10 @@ void secondary(void)
     }
 }
 
-int display(int framecount, int hudenable, int fpscount, int totaltics, int clearhud)
+void display_sprites(int l, void *p)
 {
     int i, j;
-    int start = Mars_GetFRTCounter(), total;
-    int drawcnt = 0;
-    int cameraclip = 0;
-    static int prevsec;
-    static int maxdrawcnt;
-
-    if (prevsec != sec)
-    {
-        maxdrawcnt = 0;
-        prevsec = sec;
-    }
-
-    draw_setScissor(0, 0, 320, 224);
-
-    drawcnt = draw_tilemap(&tm, fpcamera_x, fpcamera_y, &cameraclip);
-    if (drawcnt > maxdrawcnt)
-    {
-        maxdrawcnt = drawcnt;
-    }
+    int start = Mars_GetFRTCounter();
 
     draw_setScissor(0, 0, 320, 224);
 
@@ -208,6 +190,29 @@ int display(int framecount, int hudenable, int fpscount, int totaltics, int clea
                 draw_sprite(i * 64 + 16, j * 64 + 16, 32, 32, test32x32_trans_smileData, DRAWSPR_OVERWRITE | mode, 1);
         }
         draw_pivot_stretch_sprite(160, 112, 32, 32, test32x32_trans_smileData, DRAWSPR_SCALE | mode, 0x10000 + ((start * 16) & 0xffff));
+    }
+}
+
+int display(int framecount, int hudenable, int fpscount, int totaltics, int clearhud)
+{
+    int start = Mars_GetFRTCounter(), total;
+    int drawcnt = 0;
+    int cameraclip = 0;
+    static int prevsec;
+    static int maxdrawcnt;
+
+    if (prevsec != sec)
+    {
+        maxdrawcnt = 0;
+        prevsec = sec;
+    }
+
+    draw_setScissor(0, 0, 320, 224);
+
+    drawcnt = draw_tilemap(&tm, fpcamera_x, fpcamera_y, &cameraclip, &display_sprites, NULL);
+    if (drawcnt > maxdrawcnt)
+    {
+        maxdrawcnt = drawcnt;
     }
 
     total = Mars_GetFRTCounter() - start;

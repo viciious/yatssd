@@ -39,7 +39,7 @@ void set_tilemap_wrap(tilemap_t *tm, fixed_t wrapX, fixed_t wrapY);
 int draw_handle_layercmd(drawtilelayerscmd_t* cmd)
 ATTR_DATA_ALIGNED;
 
-int draw_tilemap(tilemap_t* tm, int fpcamera_x, int fpcamera_y, int *cameraclip)
+int draw_tilemap(tilemap_t *tm, int fpcamera_x, int fpcamera_y, int *cameraclip, void (*drawspr)(int l, void *p), void *sprp)
 ATTR_DATA_ALIGNED;
 
 void draw_dirtyrect(tilemap_t* tm, int x, int y, int w, int h)
