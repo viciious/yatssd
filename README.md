@@ -3,6 +3,8 @@ Yet Another Tilemap and Super Scaler Demo for the Sega 32X
 
 ![image](https://user-images.githubusercontent.com/1173058/148651754-11cb3fbd-5d09-4de7-bf23-469dc957359c.png)
 
+![image](https://user-images.githubusercontent.com/1173058/185707152-72ef304a-cc94-4ff7-a975-050904bfef40.png)
+
 Features
 ============
 - draws tilemap of arbitrary size, exported from Tiled
