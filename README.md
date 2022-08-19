@@ -18,6 +18,7 @@ Features
 - the sprites and tiles can be of any size in either dimension, although if you to plan to use scaling, the size should be a power of 2
 - sprites can be scaled to an arbitrary size
 - works on real hardware
+- can use the two MD layers as bitmap layers with parallax
 
 Tiled plugins
 ============
