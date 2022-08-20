@@ -102,8 +102,8 @@ void set_tilemap_wrap(tilemap_t *tm, fixed_t wrapX, fixed_t wrapY)
 // in window coordinates
 void draw_dirtyrect(tilemap_t* tm, int x, int y, int w, int h)
 {
-    int start_tile_hor, start_tile_ver;
-    int end_tile_hor, end_tile_ver;
+    unsigned start_tile_hor, start_tile_ver;
+    unsigned end_tile_hor, end_tile_ver;
     int num_tiles_x, num_tiles_y;
     int16_t* extrafb = (int16_t*)&MARS_FRAMEBUFFER + 0x100 + ((canvas_pitch * canvas_yaw) >> 1);
 
@@ -113,27 +113,39 @@ void draw_dirtyrect(tilemap_t* tm, int x, int y, int w, int h)
     if (x < 0) x = 0;
     if (y < 0) y = 0;
 
+    start_tile_hor = (unsigned)x;
+    end_tile_hor = (unsigned)(x + w - 1);
+
+    start_tile_ver = (unsigned)y >> 3;
+    end_tile_ver = (unsigned)(y + h - 1);
+
     switch (tm->tw) {
     case 8:
-        start_tile_hor = (unsigned)x >> 3;
-        end_tile_hor = (unsigned)(x + w - 1) >> 3;
-
-        start_tile_ver = (unsigned)y >> 3;
-        end_tile_ver = (unsigned)(y + h - 1) >> 3;
+        start_tile_hor >>= 3;
+        end_tile_hor >>= 3;
         break;
     case 16:
-        start_tile_hor = (unsigned)x >> 4;
-        end_tile_hor = (unsigned)(x + w - 1) >> 4;
-
-        start_tile_ver = (unsigned)y >> 4;
-        end_tile_ver = (unsigned)(y + h - 1) >> 4;
+        start_tile_hor >>= 4;
+        end_tile_hor >>= 4;
         break;
     default:
-        start_tile_hor = (unsigned)x / tm->tw;
-        end_tile_hor = (unsigned)(x + w - 1) / tm->tw;
+        start_tile_hor /= tm->tw;
+        end_tile_hor /= tm->tw;
+        break;
+    }
 
-        start_tile_ver = (unsigned)y / tm->th;
-        end_tile_ver = (unsigned)(y + h - 1) / tm->th;
+    switch (tm->th) {
+    case 8:
+        start_tile_ver >>= 3;
+        end_tile_ver >>= 3;
+        break;
+    case 16:
+        start_tile_ver >>= 4;
+        end_tile_ver >>= 4;
+        break;
+    default:
+        start_tile_ver /= tm->th;
+        end_tile_ver /= tm->th;
         break;
     }
 
