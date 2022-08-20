@@ -105,7 +105,7 @@ void draw_dirtyrect(tilemap_t* tm, int x, int y, int w, int h)
     int start_tile_hor, start_tile_ver;
     int end_tile_hor, end_tile_ver;
     int num_tiles_x, num_tiles_y;
-    uint16_t* extrafb = (uint16_t*)&MARS_FRAMEBUFFER + 0x100 + ((canvas_pitch * canvas_yaw) >> 1);
+    int16_t* extrafb = (int16_t*)&MARS_FRAMEBUFFER + 0x100 + ((canvas_pitch * canvas_yaw) >> 1);
 
     if (x >= canvas_pitch) return;
     if (y >= canvas_yaw) return;
@@ -146,13 +146,13 @@ void draw_dirtyrect(tilemap_t* tm, int x, int y, int w, int h)
     if (start_tile_hor + num_tiles_x > canvas_tiles_hor) num_tiles_x = canvas_tiles_hor - start_tile_hor;
     if (start_tile_ver + num_tiles_y > canvas_tiles_ver) num_tiles_y = canvas_tiles_ver - start_tile_ver;
 
-    uint16_t* dirty = extrafb + 3;
+    int16_t* dirty = extrafb + 3;
     dirty += start_tile_ver * canvas_tiles_hor + start_tile_hor;
 
     for (y = 0; y < num_tiles_y; y++) {
-        uint16_t* p = dirty;
+        int16_t* p = dirty;
         for (x = 0; x < num_tiles_x; x++) {
-            *p++ = UINT16_MAX;
+            *p++ = -1;
         }
         dirty += canvas_tiles_hor;
     }
@@ -214,8 +214,8 @@ int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
     int x, y;
     tilemap_t* tm = cmd->tm;
     const int w = tm->tw, h = tm->th;
-    uint16_t* extrafb = (uint16_t*)&MARS_FRAMEBUFFER + 0x100 + ((canvas_pitch * canvas_yaw) >> 1);
-    uint16_t* dirty = extrafb + 3;
+    int16_t* extrafb = (int16_t*)&MARS_FRAMEBUFFER + 0x100 + ((canvas_pitch * canvas_yaw) >> 1);
+    int16_t* dirty = extrafb + 3;
     const int canvas_tiles_hor = tm->canvas_tiles_hor;
     const int xx = cmd->x, yy = cmd->y;
     const int start_tile = cmd->start_tile, end_tile = cmd->end_tile;
@@ -232,7 +232,7 @@ int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
     if (cmd->startlayer != 0 && cmd->parallax)
     {
         const dtilelayer_t *tl = &tm->layers[cmd->startlayer];
-        const uint16_t* layer = tl->tiles;
+        const int16_t* layer = (int16_t *)tl->tiles;
         int y_tile;
         int stid = scroll_tile_id;
         int drawmode = cmd->drawmode;
@@ -255,7 +255,7 @@ int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
             {
                 if (i == n)
                 {
-                    uint16_t idx = layer[tile];
+                    int16_t idx = layer[tile];
                     if (idx != 0)
                     {
                         const uint8_t* res = reslist[(idx >> 2)];
@@ -285,8 +285,8 @@ int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
         int drawmode = cmd->drawmode;
         unsigned l = cmd->startlayer;
         const dtilelayer_t *tl = &tm->layers[l];
-        const uint16_t* layer = tl->tiles;
-        const uint16_t* last_layer = tm->layers[tm->numlayers-1].tiles;
+        const int16_t* layer = (int16_t *)tl->tiles;
+        const int16_t* last_layer = (int16_t *)tm->layers[tm->numlayers-1].tiles;
         int y_tile;
         int stid = scroll_tile_id;
         void* fb;
@@ -314,7 +314,7 @@ int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
             {
                 if (i == n)
                 {
-                    uint16_t idx = layer[tile];
+                    int16_t idx = layer[tile];
 
                     // only redraw the tile if:
                     // 1. the tile in the dirty matrix doesn't match and
@@ -326,11 +326,11 @@ int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
                         {
                             // for base layer, always update dirty matrix with the current tile id
                             // for other layers, do so only if we're rendering atop of zero-tile
-                            // otherwise update with UINT16_MAX as we were rendering a sprite
+                            // otherwise update to -1 as we were rendering a sprite
                             if (l == 0)
                                 dirty[id] = idx;
                             else
-                                dirty[id] = dirty[id] == 0 ? idx : UINT16_MAX;
+                                dirty[id] = dirty[id] == 0 ? idx : -1;
 
                             const uint8_t* res = reslist[(idx >> 2)];
                             int tiledrawmode = drawmode | (idx & 3);
@@ -411,34 +411,67 @@ static int draw_tile_layer(drawtilecontext_t *dc, int layer, int *pclipped)
     int scroll_count_hor = 0, scroll_count_ver = 0;
     int top_scroll_tile_hor = 0, top_scroll_tile_ver = 0;
 
-    if (layer == 0 || !dc->parallax)
-    {
-        scroll_tiles_hor = tm->scroll_tiles_hor;
-        scroll_interval_hor = tm->scroll_interval_hor;
+    scroll_tiles_hor = tm->scroll_tiles_hor;
+    scroll_interval_hor = tm->scroll_interval_hor;
 
-        scroll_tiles_ver = tm->scroll_tiles_ver;
-        scroll_interval_ver = tm->scroll_interval_ver;
-    
-        scroll_count_hor = camera_x / scroll_interval_hor;
-        scroll_count_ver = camera_y / scroll_interval_ver;
+    scroll_tiles_ver = tm->scroll_tiles_ver;
+    scroll_interval_ver = tm->scroll_interval_ver;
 
-        top_scroll_tile_hor = scroll_tiles_hor * scroll_count_hor;
-        top_scroll_tile_ver = scroll_tiles_ver * scroll_count_ver;
-    }
+    scroll_count_hor = camera_x / scroll_interval_hor;
+    scroll_count_ver = camera_y / scroll_interval_ver;
+
+    top_scroll_tile_hor = scroll_tiles_hor * scroll_count_hor;
+    top_scroll_tile_ver = scroll_tiles_ver * scroll_count_ver;
 
     int tiles_hor = tm->tiles_hor;
     int tiles_ver = tm->tiles_ver;
 
-    int start_tile_hor = (unsigned)camera_x / w;
-    if (start_tile_hor >= tiles_hor) return 0;
+    unsigned start_tile_hor, start_tile_ver;
+    unsigned end_tile_hor, end_tile_ver;
 
-    int start_tile_ver = (unsigned)camera_y / h;
+    start_tile_hor = (unsigned)camera_x;
+    end_tile_hor = (unsigned)camera_x + w - 1 + canvas_width;
+    start_tile_ver = (unsigned)camera_y;
+    end_tile_ver = (unsigned)camera_y + h - 1 + canvas_height;
+
+    switch (w) {
+    case 8:
+        start_tile_hor >>= 3;
+        end_tile_hor >>= 3;
+        break;
+    case 16:
+        start_tile_hor >>= 4;
+        end_tile_hor >>= 4;
+        break;
+    default:
+        start_tile_hor /= w;
+        end_tile_hor /= w;
+        break;
+    }
+
+    switch (h) {
+    case 8:
+        start_tile_ver >>= 3;
+        end_tile_ver >>= 3;
+        break;
+    case 16:
+        start_tile_ver >>= 4;
+        end_tile_ver >>= 4;
+        break;
+    default:
+        start_tile_ver /= h;
+        end_tile_ver /= h;
+        break;
+    }
+
+    if (start_tile_hor >= tiles_hor) return 0;
     if (start_tile_ver >= tiles_ver) return 0;
 
-    int end_tile_hor = ((unsigned)camera_x + w - 1 + canvas_width) / w;
+    if (start_tile_hor < 0) start_tile_ver = 0;
+    if (start_tile_ver < 0) start_tile_ver = 0;
+
     if (end_tile_hor > tiles_hor) end_tile_hor = tiles_hor;
 
-    int end_tile_ver = ((unsigned)camera_y + h - 1 + canvas_height) / h;
     if (end_tile_ver < 1) end_tile_ver = 1;
     if (end_tile_ver > tiles_ver) end_tile_ver = tiles_ver;
 
@@ -457,12 +490,6 @@ static int draw_tile_layer(drawtilecontext_t *dc, int layer, int *pclipped)
 
     int xx, yy;
 
-    if (layer == 0)
-    {
-        main_camera_x = camera_x;
-        main_camera_y = camera_y;
-    }
-
     scroll_x = camera_x - scroll_count_hor * scroll_interval_hor;
     scroll_y = camera_y - scroll_count_ver * scroll_interval_ver;
 
@@ -471,14 +498,16 @@ static int draw_tile_layer(drawtilecontext_t *dc, int layer, int *pclipped)
 
     if (layer == 0)
     {
+        main_camera_x = camera_x;
+        main_camera_y = camera_y;
         window_canvas_x = scroll_x;
         window_canvas_y = scroll_y;
     }
 
     if (layer == 0)
     {
-        uint16_t* extrafb = (uint16_t*)&MARS_FRAMEBUFFER + 0x100 + ((canvas_pitch * canvas_yaw) >> 1);
-        uint16_t *dirty = extrafb + 3;
+        int16_t* extrafb = (int16_t*)&MARS_FRAMEBUFFER + 0x100 + ((canvas_pitch * canvas_yaw) >> 1);
+        int16_t *dirty = extrafb + 3;
 
         MARS_VDP_SHIFTREG = old_camera_x;
 
@@ -490,12 +519,12 @@ static int draw_tile_layer(drawtilecontext_t *dc, int layer, int *pclipped)
 
         if (tm->id != *extrafb)
         {
-            uint16_t* p = dirty;
+            int16_t* p = dirty;
 
             // mark all tiles as dirty
             for (y = 0; y < canvas_tiles_ver; y++) {
                 for (x = 0; x < canvas_tiles_hor; x++) {
-                    *p++ = UINT16_MAX;
+                    *p++ = -1;
                 }
             }
 
