@@ -283,9 +283,10 @@ int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
     else
     {
         int drawmode = cmd->drawmode;
-        int l = cmd->startlayer;
+        unsigned l = cmd->startlayer;
         const dtilelayer_t *tl = &tm->layers[l];
         const uint16_t* layer = tl->tiles;
+        const uint16_t* last_layer = tm->layers[tm->numlayers-1].tiles;
         int y_tile;
         int stid = scroll_tile_id;
         void* fb;
@@ -314,14 +315,22 @@ int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
                 if (i == n)
                 {
                     uint16_t idx = layer[tile];
+
+                    // only redraw the tile if:
+                    // 1. the tile in the dirty matrix doesn't match and
+                    // 2a. it's not zero-tile or
+                    // 2b. it's the base layer and the tile in the upmost layer of the tilemap doesn't match
                     if (dirty[id] != idx)
                     {
-                        if (idx != 0 || l == 0)
+                        if (idx != 0 || (l == 0 && last_layer[tile] != dirty[id]))
                         {
-                            if (l > 0)
-                                dirty[id] = dirty[id] == 0 ? idx : UINT16_MAX;
-                            else
+                            // for base layer, always update dirty matrix with the current tile id
+                            // for other layers, do so only if we're rendering atop of zero-tile
+                            // otherwise update with UINT16_MAX as we were rendering a sprite
+                            if (l == 0)
                                 dirty[id] = idx;
+                            else
+                                dirty[id] = dirty[id] == 0 ? idx : UINT16_MAX;
 
                             const uint8_t* res = reslist[(idx >> 2)];
                             int tiledrawmode = drawmode | (idx & 3);
