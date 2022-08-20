@@ -286,13 +286,18 @@ int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
         unsigned l = cmd->startlayer;
         const dtilelayer_t *tl = &tm->layers[l];
         const int16_t* layer = (int16_t *)tl->tiles;
-        const int16_t* last_layer = (int16_t *)tm->layers[tm->numlayers-1].tiles;
+        const dtilelayer_t *ltl = &tm->layers[tm->numlayers-1];
         int y_tile;
         int stid = scroll_tile_id;
         void* fb;
 
         if (tl->objectLayer)
             return 0;
+
+        // find the last non-object layer
+        while (ltl != tm->layers && ltl->objectLayer)
+            ltl--;
+        const int16_t* last_layer = (int16_t *)ltl->tiles;
 
         if (l > 0)
             drawmode |= DRAWSPR_PRECISE | DRAWSPR_OVERWRITE;
