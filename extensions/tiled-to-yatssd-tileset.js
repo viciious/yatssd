@@ -157,7 +157,7 @@ var customTilesFormat = {
 
         resourceFileData += tilesetData + "\n";
 
-        resourceFileData += "uint8_t * "+resourceName+"_Reslist[] = {\n";
+        resourceFileData += "const uint8_t * "+resourceName+"_Reslist[] = {\n";
         resourceFileData += res.join(",\n");
         resourceFileData += "\n};\n";
 
