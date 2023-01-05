@@ -7,19 +7,20 @@ Yet Another Tilemap and Super Scaler Demo for the Sega 32X
 
 Features
 ============
+- works on real hardware
 - draws tilemap of arbitrary size, exported from Tiled
 - scrolls in any direction, avoiding redraw as much as possible using the dirty rectangles approach
-- uses the shift-register for smooth scrolling
-- can handle an arbitrary number of sprites, all fully clipped
+- uses the hardware screen shift-register for smooth scrolling
+- can handle an arbitrary number of clipped sprites
 - adjustable clipping region for sprites: see the draw_setScissor call
 - uses both CPUs to draw tiles and sprites
 - sprites can be flipped on X and Y axis and/or scaled
 - "imprecise" rendering: sprites can be scaled using a cheaper and faster algorithm, the X coordinate is also snapped to the nearest even value
 - the code also supports flipping of tiles, although the tilemap format would need to be extended for that
-- same for multiple tile layers: it can handle an arbitrary number of layers, albeit without parallax, which would should be easy to add
+- it can handle an arbitrary number of tile layers along with parallax
 - the sprites and tiles can be of any size in either dimension, although if you to plan to use scaling, the size should be a power of 2
 - sprites can be scaled to an arbitrary size
-- works on real hardware
+- support for dedicated sprite tile layers 
 - can use the two MD layers as bitmap layers with parallax
 
 Tiled plugins
