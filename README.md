@@ -31,6 +31,21 @@ The plugins require Tiled version 1.5 or newer.
 
 [More information on Tiled plugins.](https://doc.mapeditor.org/en/stable/reference/scripting/)
 
+Building
+============
+
+**Prerequisites**
+
+A posix system and [Chilly Willy's Sega MD/CD/32X devkit](https://github.com/viciious/32XDK/releases) is requred to build this demo.
+
+**VSCode + Remote Dev Container**
+
+Unless you already have the devkit built, using VSCode with Docker is one of the faster ways to get started. VSCode will offer to set up a Development Container the first time the project folder is opened.
+
+[More information on Developing with VSCode inside a Container](https://code.visualstudio.com/docs/remote/containers)
+
+If you're using Windows 10/11, you must also [install WSL 2](https://docs.docker.com/desktop/windows/wsl/) and Linux distribution before attempting to build from VSCode.
+
 License
 ============
 If a source file does not have a license header stating otherwise, then it is covered by the MIT license.
