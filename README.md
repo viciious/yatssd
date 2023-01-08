@@ -47,6 +47,36 @@ Unless you already have the devkit built, using VSCode with Docker is one of the
 
 If you're using Windows 10/11, you must also [install WSL 2](https://docs.docker.com/desktop/windows/wsl/) and Linux distribution before attempting to build from VSCode.
 
+***VSCode settings***
+
+We recommend installing the 'Makefile tools' extension and using the following VSCode settings.json for the project:
+
+```json
+{
+    "C_Cpp.default.includePath": [
+        "/opt/toolchains/sega/sh-elf/include/",
+        "/opt/toolchains/sega/m68k-elf/include/"
+    ],
+    "C_Cpp.default.compilerPath": "/opt/toolchains/sega/sh-elf/bin/sh-elf-gcc",
+    "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools",
+
+    "makefile.configurations": [
+        {
+            "name": "release",
+            "makeArgs": ["-j", "release"]
+        },
+        {
+            "name": "debug",
+            "makeArgs": ["-j", "debug"]
+        },
+        {
+            "name": "clean",
+            "makeArgs": ["clean"]
+        }
+    ]
+}
+```
+
 License
 ============
 If a source file does not have a license header stating otherwise, then it is covered by the MIT license.
