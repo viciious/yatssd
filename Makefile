@@ -64,7 +64,7 @@ $(TARGET).32x: $(TARGET).elf
 $(TARGET).elf: $(OBJS)
 	$(CC) $(LDFLAGS) $(OBJS) $(LIBS) -o $(TARGET).elf
 
-crt0.o: | m68k.bin
+crt0.o: crt0.s m68k.bin
 
 hw_32x.o: hw_32x.c
 	$(CC) $(MARSHWCFLAGS) $(INCPATH) $< -o $@
