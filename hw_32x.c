@@ -24,9 +24,9 @@
 static int X = 0, Y = 0;
 static int MX = 40, MY = 25;
 static int init = 0;
-static unsigned short fgc = -1, bgc = 0;
-static unsigned short fgs = -1, bgs = 0;
-static unsigned short fgp = 0, bgp = 0;
+static short fgc = -1, bgc = 0;
+static short fgs = -1, bgs = 0;
+static short fgp = 0, bgp = 0;
 
 static volatile const uint8_t *new_palette;
 static volatile char new_pri;
@@ -138,7 +138,7 @@ void Hw32xSetBGOverlayPriorityBit(int p)
 
 void Hw32xUpdateLineTable(int hscroll, int vscroll, int lineskip)
 {
-    int i;
+    unsigned i;
     int i_lineskip;
     const int ymask = canvas_yaw - 1;
     const int pitch = canvas_pitch >> 1;
@@ -192,7 +192,7 @@ void Hw32xInit(int vmode, int lineskip)
 {
     volatile unsigned short *frameBuffer16 = &MARS_FRAMEBUFFER;
     int priority = vmode & (MARS_VDP_PRIO_32X | MARS_VDP_PRIO_68K);
-    int i;
+    unsigned i;
 
     // Wait for the SH2 to gain access to the VDP
     while ((MARS_SYS_INTMSK & MARS_SH2_ACCESS_VDP) == 0) ;
