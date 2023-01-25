@@ -107,11 +107,11 @@ void draw_dirtyrect(tilemap_t* tm, int x, int y, int w, int h)
     int num_tiles_x, num_tiles_y;
     int16_t* extrafb = (int16_t*)&MARS_FRAMEBUFFER + 0x100 + ((canvas_pitch * canvas_yaw) >> 1);
 
-    if (x >= canvas_pitch) return;
-    if (y >= canvas_yaw) return;
-
     if (x < 0) x = 0;
     if (y < 0) y = 0;
+
+    if (x >= (int)canvas_pitch) return;
+    if (y >= (int)canvas_yaw) return;
 
     start_tile_hor = (unsigned)x;
     end_tile_hor = (unsigned)(x + w - 1);
@@ -286,7 +286,7 @@ int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
 
             y += h;
             stid += canvas_tiles_hor;
-            if (y >= canvas_pitch)
+            if (y >= (int)canvas_pitch)
                 break;
         }
 
@@ -368,7 +368,7 @@ int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
 
             y += h;
             stid += canvas_tiles_hor;
-            if (y >= canvas_pitch)
+            if (y >= (int)canvas_pitch)
                 break;
         }
     }
