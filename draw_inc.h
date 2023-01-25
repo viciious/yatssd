@@ -20,9 +20,29 @@
 #undef DSWAP_BYTE
 #endif
 
+#ifdef DRAW_PIX_OP
+#undef DRAW_PIX_OP
+#endif
+
+#ifdef DRAW_PIX_SZ
+#undef DRAW_PIX_SZ
+#endif
+
+#ifdef DRAW_PIX_IDX
+#undef DRAW_PIX_IDX
+#endif
+
 #if DRAW_DST_BITS > 8
+#define DRAW_PIX_OP "w"
+#define DRAW_PIX_SZ "2"
+#define DRAW_PIX_IDX(r) "add " #r ", " #r "\n\t"
+#define DRAW_PIX_SWP(r) "swap.b " #r ", " #r "\n\t"
 #define DSWAP_BYTE(b) __asm volatile("swap.b %0, %0\n\t" : "+r" (b))
 #else
+#define DRAW_PIX_OP "b"
+#define DRAW_PIX_SZ "1"
+#define DRAW_PIX_IDX(r) ""
+#define DRAW_PIX_SWP(r) ""
 #define DSWAP_BYTE(b)
 #endif
 
@@ -37,8 +57,6 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT* fb, drawsprcmd_t* cmd) __attribute__(
 void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd) __attribute__((section(".data"), aligned(16)));
 void DFUNC(_sprite8_scale_flip0or2)(DUINT* fb, drawsprcmd_t* cmd) __attribute__((section(".data"), aligned(16)));
 void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd) __attribute__((section(".data"), aligned(16)));
-void DFUNC(_sprite8_scale_scale_flip0or2)(DUINT* fb, drawsprcmd_t* cmd) __attribute__((section(".data"), aligned(16)));
-void DFUNC(_sprite8_scale_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd) __attribute__((section(".data"), aligned(16)));
 
 #define PIX_LOOP_UNROLL4() do { \
         unsigned i, j; \
@@ -78,7 +96,7 @@ void DFUNC(_sprite8_scale_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd) __attribute
         } while (--i > 0); \
     } while (0)
 
-#define PIX_LOOP2(n) do { \
+#define PIX_LOOP2() do { \
         unsigned i, j; \
         int *d = (int *)td; \
         const int *s = (const int *)ts; \
@@ -120,7 +138,7 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
     ts += hsw * cmd->sy + (cmd->sx >> DUINT_RSH);
 
     if (sizeof(DUINT) == 2 && !(hw & 3) && !((intptr_t)ts & 3) && !((intptr_t)td & 3)) {
-        PIX_LOOP2(4);
+        PIX_LOOP2();
         return;
     }
 
@@ -142,7 +160,17 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
 
             td[0] = ts[0];
 
-#define DO_PIXEL() do { *d++ = sp >> 16; sp = (sp << 16) | (*s++ << 8); } while (0)
+//#define DO_PIXEL() do { *d++ = sp >> 16; sp = (sp << 16) | (*s++ << 8); } while (0)
+#define DO_PIXEL() do { __asm volatile ( \
+                "swap.w %0, r0\t\n" \
+                "mov.w r0, @%1\t\n" \
+                "add #2, %1\t\n" \
+                "mov.w @%2+, r0\t\n" \
+                "shll16 %0\t\n" \
+                "shll8 r0\t\n" \
+                "or r0, %0\t\n" \
+                : "+r"(sp), "+r"(d), "+r"(s) : : "r0" ); \
+            } while (0)
 
             switch (count & 7)
             {
@@ -220,7 +248,17 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
         DUINT* d = td;
         unsigned n = nn;
 
-#define DO_PIXEL() do { *d++ = s[(u >> 16) & umask]; u += step; } while (0)
+//#define DO_PIXEL() do { *d++ = s[(u >> 16) & umask]; u += step; } while (0)
+#define DO_PIXEL() do { __asm volatile ( \
+                "swap.w %0, r0\t\n" \
+                "and %4, r0\t\n" \
+                DRAW_PIX_IDX(r0) \
+                "mov." DRAW_PIX_OP " @(r0,%2), r0\t\n" \
+                "add %3, %0\t\n" \
+                "mov." DRAW_PIX_OP " r0, @%1\t\n" \
+                "add #" DRAW_PIX_SZ ", %1\t\n" \
+                : "+r"(u), "+r"(d), "+r"(s) : "r"(step), "r"(umask) : "r0" ); \
+            } while (0)
 
         u = ustart;
         switch (hw & 7)
@@ -322,7 +360,17 @@ void DFUNC(_sprite8_flip1)(DUINT* fb, drawsprcmd_t* cmd)
 
             td[0] = ts[0];
 
-#define DO_PIXEL() do { uint16_t b = sp>>16; __asm ("swap.b %0, %0\n\t" : "+r" (b)); *--d = b; sp <<= 16; sp |= *s++ << 8; } while (0)
+//#define DO_PIXEL() do { uint16_t b = sp>>16; DSWAP_BYTE(b); *--d = b; sp <<= 16; sp |= *s++ << 8; } while (0)
+#define DO_PIXEL() do { __asm volatile ( \
+                "swap.w %0, r0\t\n" \
+                "swap.b r0, r0\t\n" \
+                "mov.w r0, @-%1\t\n" \
+                "mov.w @%2+, r0\t\n" \
+                "shll16 %0\t\n" \
+                "shll8 r0\t\n" \
+                "or r0, %0\t\n" \
+                : "+r"(sp), "+r"(d), "+r"(s) : : "r0" ); \
+            } while (0)
 
             switch (count & 7)
             {
@@ -401,7 +449,17 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd)
         DUINT* d = td + 1;
         unsigned n = nn;
 
-#define DO_PIXEL() do { DUINT b = s[(u >> 16) & umask]; u += step; DSWAP_BYTE(b); *--d = b; } while (0)
+//#define DO_PIXEL() do { DUINT b = s[(u >> 16) & umask]; u += step; DSWAP_BYTE(b); *--d = b; } while (0)
+#define DO_PIXEL() do { __asm volatile ( \
+                "swap.w %0, r0\t\n" \
+                "and %4, r0\t\n" \
+                DRAW_PIX_IDX(r0) \
+                "mov." DRAW_PIX_OP " @(r0,%2), r0\t\n" \
+                DRAW_PIX_SWP(r0) \
+                "mov." DRAW_PIX_OP " r0, @-%1\t\n" \
+                "add %3, %0\t\n" \
+                : "+r"(u), "+r"(d), "+r"(s) : "r"(step), "r"(umask) : "r0" ); \
+            } while (0)
 
         u = ustart;
         switch (hw & 7)
