@@ -124,6 +124,7 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
     int hdw;
     unsigned x = cmd->x, y = cmd->y;
     unsigned w = cmd->w, h = cmd->h;
+    char jumptbl[] = { 0, 42, 28, 14 }; // Duff's device jump table, 7 instr per case
 
     if (nodraw) return;
 
@@ -151,6 +152,7 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
 
         count = (hw - 1) >> 1;
         nn = (count + 3) >> 2;
+        count &= 3;
 
         for (i = h; i > 0; i--) {
             uint16_t* d = (uint16_t*)(td + 1);
@@ -158,25 +160,12 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
             uint32_t sp;
             unsigned n;
 
+            td[0] = ts[0];
+
             sp = *s++ << 16;
             sp |= *s++;
             sp <<= 8;
 
-            td[0] = ts[0];
-
-#if 0
-#define DO_PIXEL() do { *d++ = sp >> 16; sp = (sp << 16) | (*s++ << 8); } while (0)
-            n = nn;
-            switch (count & 3)
-            {
-            case 0: do { DO_PIXEL();
-            case 3:      DO_PIXEL();
-            case 2:      DO_PIXEL();
-            case 1:      DO_PIXEL();
-            } while (--n > 0);
-            }
-#undef DO_PIXEL
-#else
 #define DO_PIXEL() do { __asm volatile ( \
                 "swap.w %0, r0\t\n" \
                 "mov.w r0, @%1\t\n" \
@@ -188,30 +177,26 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
                 : "+r"(sp), "+r"(d), "+r"(s) : : "r0" ); \
             } while (0)
 
+#if 0
+//#define DO_PIXEL() do { *d++ = sp >> 16; sp = (sp << 16) | (*s++ << 8); } while (0)
+            n = nn;
+            switch (count)
+            {
+            case 0: do { DO_PIXEL();
+            case 3:      DO_PIXEL();
+            case 2:      DO_PIXEL();
+            case 1:      DO_PIXEL();
+            } while (--n > 0);
+            }
+#undef DO_PIXEL
+#else
             __asm volatile ( \
-                "/* do some math on the jump index i = i ^ ((i & 1)<<2) */ \t\n" \
-                "/* so that we end up with the following mapping: */ \t\n" \
-                "/* [0 -> 0, 1 -> 3, 2 -> 2, 3 -> 1], and Duff's device */ \t\n" \
-                "/* still works despite the reversed case order */ \t\n" \
                 "mov %2, r0\t\n" \
-                "and #3, r0\t\n" \
-                "mov r0, %0\t\n" \
-                "and #1, r0\t\n" \
-                "shll r0\t\n" \
-                "xor %0, r0\t\n" \
-                "/* calculate the offset: DO_PIXEL is 7 instructions */ \t\n" \
-                "/* multiply by 7: multiply by 8 and sub once */ \t\n" \
-                "/* then double the offset for braf: SH2 instructions all */ \t\n" \
-                "/* have a fixed size of 2 bytes */ \t\n" \
-                "mov r0, %0\t\n" \
-                "shll2 r0\t\n" \ 
-                "shll r0\t\n" \
-                "sub %0, r0\t\n" \
-                "shll r0\t\n" \
+                "mov.b @(r0,%3), r0\t\n" \
                 "mov %1, %0\t\n" \
                 "braf r0\t\n" \
                 "nop\t\n" \
-                : "=&r"(n) : "r"(nn), "r"(count) : "r0" );
+                : "=&r"(n) : "r"(nn), "r"(count), "r"(jumptbl) : "r0" );
 draw_pixels:
             DO_PIXEL();
             DO_PIXEL();
@@ -262,9 +247,10 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
     hw = cmd->w >> DUINT_RSH;
     hsw = cmd->sw >> DUINT_RSH;
     hdw = canvas_pitch >> DUINT_RSH;
-    nn = (hw + 7) >> 3;
+    nn = (hw + 3) >> 2;
     if (hw == 0)
         return;
+    hw &= 3;
 
     if (cmd->flags & (DRAWSPR_HFLIP | DRAWSPR_VFLIP)) {
         y = y + h - 1;
@@ -297,13 +283,9 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
             } while (0)
 
         u = ustart;
-        switch (hw & 7)
+        switch (hw)
 	    {
 	    case 0: do { DO_PIXEL();
-        case 7:      DO_PIXEL();
-	    case 6:      DO_PIXEL();
-	    case 5:      DO_PIXEL();
-	    case 4:      DO_PIXEL();
 	    case 3:      DO_PIXEL();
 	    case 2:      DO_PIXEL();
 	    case 1:      DO_PIXEL();
@@ -382,7 +364,8 @@ void DFUNC(_sprite8_flip1)(DUINT* fb, drawsprcmd_t* cmd)
         unsigned i, count, nn;
 
         count = (hw - 1) >> 1;
-        nn = (count + 7) >> 3;
+        nn = (count + 3) >> 2;
+        count &= 3;
 
         for (i = h; i > 0; i--) {
             uint16_t* d = (uint16_t*)(td);
@@ -408,13 +391,9 @@ void DFUNC(_sprite8_flip1)(DUINT* fb, drawsprcmd_t* cmd)
                 : "+r"(sp), "+r"(d), "+r"(s) : : "r0" ); \
             } while (0)
 
-            switch (count & 7)
+            switch (count)
             {
             case 0: do { DO_PIXEL();
-            case 7:      DO_PIXEL();
-            case 6:      DO_PIXEL();
-            case 5:      DO_PIXEL();
-            case 4:      DO_PIXEL();
             case 3:      DO_PIXEL();
             case 2:      DO_PIXEL();
             case 1:      DO_PIXEL();
@@ -462,9 +441,10 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd)
     hw = cmd->w >> DUINT_RSH;
     hsw = cmd->sw >> DUINT_RSH;
     hdw = canvas_pitch >> DUINT_RSH;
-    nn = (hw + 7) >> 3;
+    nn = (hw + 3) >> 2;
     if (hw == 0)
         return;
+    hw &= 3;
 
     if (cmd->flags & DRAWSPR_VFLIP) {
         y = y + h - 1;
@@ -498,13 +478,9 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd)
             } while (0)
 
         u = ustart;
-        switch (hw & 7)
+        switch (hw)
 	    {
 	    case 0: do { DO_PIXEL();
-        case 7:      DO_PIXEL();
-	    case 6:      DO_PIXEL();
-	    case 5:      DO_PIXEL();
-	    case 4:      DO_PIXEL();
 	    case 3:      DO_PIXEL();
 	    case 2:      DO_PIXEL();
 	    case 1:      DO_PIXEL();
