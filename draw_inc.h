@@ -188,19 +188,23 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
                 : "+r"(sp), "+r"(d), "+r"(s) : : "r0" ); \
             } while (0)
 
-            /* do some math on the jump index i = i ^ ((i & 1)<<2) */
-            /* so that we end up with the following mapping: */
-            /* [0 -> 0, 1 -> 3, 2 -> 2, 3 -> 1], and Duff's device */
-            /* still works despite the reversed case order */
             __asm volatile ( \
+                "/* do some math on the jump index i = i ^ ((i & 1)<<2) */ \t\n" \
+                "/* so that we end up with the following mapping: */ \t\n" \
+                "/* [0 -> 0, 1 -> 3, 2 -> 2, 3 -> 1], and Duff's device */ \t\n" \
+                "/* still works despite the reversed case order */ \t\n" \
                 "mov %2, r0\t\n" \
                 "and #3, r0\t\n" \
                 "mov r0, %0\t\n" \
                 "and #1, r0\t\n" \
                 "shll r0\t\n" \
                 "xor %0, r0\t\n" \
+                "/* calculate the offset: DO_PIXEL is 7 instructions */ \t\n" \
+                "/* multiply by 7: multiply by 8 and sub once */ \t\n" \
+                "/* then double the offset for braf: SH2 instructions all */ \t\n" \
+                "/* have a fixed size of 2 bytes */ \t\n" \
                 "mov r0, %0\t\n" \
-                "shll2 r0\t\n" \
+                "shll2 r0\t\n" \ 
                 "shll r0\t\n" \
                 "sub %0, r0\t\n" \
                 "shll r0\t\n" \
