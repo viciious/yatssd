@@ -32,6 +32,10 @@
 #undef DRAW_PIX_IDX
 #endif
 
+#ifdef DRAW_PIX_SWP
+#undef DRAW_PIX_SWP
+#endif
+
 #if DRAW_DST_BITS > 8
 #define DRAW_PIX_OP "w"
 #define DRAW_PIX_SZ "2"
@@ -146,13 +150,13 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
         unsigned i, count, nn;
 
         count = (hw - 1) >> 1;
-        nn = (count + 7) >> 3;
+        nn = (count + 3) >> 2;
 
         for (i = h; i > 0; i--) {
             uint16_t* d = (uint16_t*)(td + 1);
             const uint16_t* s = (const uint16_t*)ts;
             uint32_t sp;
-            unsigned n = nn;
+            unsigned n;
 
             sp = *s++ << 16;
             sp |= *s++;
@@ -160,7 +164,19 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
 
             td[0] = ts[0];
 
-//#define DO_PIXEL() do { *d++ = sp >> 16; sp = (sp << 16) | (*s++ << 8); } while (0)
+#if 0
+#define DO_PIXEL() do { *d++ = sp >> 16; sp = (sp << 16) | (*s++ << 8); } while (0)
+            n = nn;
+            switch (count & 3)
+            {
+            case 0: do { DO_PIXEL();
+            case 3:      DO_PIXEL();
+            case 2:      DO_PIXEL();
+            case 1:      DO_PIXEL();
+            } while (--n > 0);
+            }
+#undef DO_PIXEL
+#else
 #define DO_PIXEL() do { __asm volatile ( \
                 "swap.w %0, r0\t\n" \
                 "mov.w r0, @%1\t\n" \
@@ -172,20 +188,36 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
                 : "+r"(sp), "+r"(d), "+r"(s) : : "r0" ); \
             } while (0)
 
-            switch (count & 7)
-            {
-            case 0: do { DO_PIXEL();
-            case 7:      DO_PIXEL();
-            case 6:      DO_PIXEL();
-            case 5:      DO_PIXEL();
-            case 4:      DO_PIXEL();
-            case 3:      DO_PIXEL();
-            case 2:      DO_PIXEL();
-            case 1:      DO_PIXEL();
-            } while (--n > 0);
-            }
-#undef DO_PIXEL
+            /* do some math on the jump index i = i ^ ((i & 1)<<2) */
+            /* so that we end up with the following mapping: */
+            /* [0 -> 0, 1 -> 3, 2 -> 2, 3 -> 1], and Duff's device */
+            /* still works despite the reversed case order */
+            __asm volatile ( \
+                "mov %2, r0\t\n" \
+                "and #3, r0\t\n" \
+                "mov r0, %0\t\n" \
+                "and #1, r0\t\n" \
+                "shll r0\t\n" \
+                "xor %0, r0\t\n" \
+                "mov r0, %0\t\n" \
+                "shll2 r0\t\n" \
+                "shll r0\t\n" \
+                "sub %0, r0\t\n" \
+                "shll r0\t\n" \
+                "mov %1, %0\t\n" \
+                "braf r0\t\n" \
+                "nop\t\n" \
+                : "=&r"(n) : "r"(nn), "r"(count) : "r0" );
+draw_pixels:
+            DO_PIXEL();
+            DO_PIXEL();
+            DO_PIXEL();
+            DO_PIXEL();
+            __asm volatile ( "dt %0\t\n" : "+r"(n) );
+            __asm goto ( "bf %l0\t\n" : : : : draw_pixels );
 
+#undef DO_PIXEL
+#endif
             td[hw - 1] = ts[hw - 1];
             ts += hsw;
             td += hdw;
