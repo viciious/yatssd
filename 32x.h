@@ -147,8 +147,8 @@
 #define ClearCacheLines(paddr,nl) \
 	do { \
 		volatile intptr_t addr = (volatile intptr_t)paddr; \
-		int l; \
-		for (l = 0; l < nl; l++) { \
+		unsigned l; \
+		for (l = nl; l > 0; l--) { \
 			ClearCacheLine(addr); \
 			addr += 16; \
 		} \

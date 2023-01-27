@@ -13,7 +13,7 @@ static int draw_clipsprite(int x, int y, int w, int h, int sw, int sh,
     rect_t* cliprect, const uint8_t* data, int flags, fixed_t scale)
 {
     drawsprcmd_t cmd, * scmd;
-    unsigned hh;
+    int hh;
     int cl = cliprect->x1;
     int cr = cliprect->x2;
     int ct = cliprect->y1;
