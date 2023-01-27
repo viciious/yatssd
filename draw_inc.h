@@ -69,13 +69,13 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd) __attribute__((se
         const int is = (hsw-hw), id = (hdw-hw); \
         i = h; \
         do { \
-            j = hw; \
+            j = hw>>2; \
             do { \
-                *d++ = *s++, j--; \
-                *d++ = *s++, j--; \
-                *d++ = *s++, j--; \
-                *d++ = *s++, j--; \
-            } while(j > 0); \
+                *d++ = *s++; \
+                *d++ = *s++; \
+                *d++ = *s++; \
+                *d++ = *s++; \
+            } while(--j > 0); \
             s += is; \
             d += id; \
         } while (--i > 0); \
@@ -88,13 +88,13 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd) __attribute__((se
         const int is = (hsw-hw), id = (hdw-hw); \
         i = h; \
         do { \
-            j = hw; \
+            j = hw>>2; \
             do { \
-                *d++ = *s++, j--; \
-                *d++ = *s++, j--; \
-                *d++ = *s++, j--; \
-                *d++ = *s++, j--; \
-            } while(j > 0); \
+                *d++ = *s++; \
+                *d++ = *s++; \
+                *d++ = *s++; \
+                *d++ = *s++; \
+            } while(--j > 0); \
             s += is; \
             d += id; \
         } while (--i > 0); \
@@ -154,7 +154,8 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
         nn = (count + 3) >> 2;
         count &= 3;
 
-        for (i = h; i > 0; i--) {
+        i = h;
+        do {
             uint16_t* d = (uint16_t*)(td + 1);
             const uint16_t* s = (const uint16_t*)ts;
             uint32_t sp;
@@ -210,7 +211,7 @@ draw_pixels:
             td[hw - 1] = ts[hw - 1];
             ts += hsw;
             td += hdw;
-        }
+        } while (--i > 0);
 
         return;
     }
@@ -265,7 +266,8 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
     step = SH2_DIVU_DVDNTL; // get 32-bit quotient
 
     v = cmd->sy << 16;
-    for (i = h; i > 0; i--) {
+    i = h;
+    do {
         const DUINT* s = ts + ((v >> 16) & vmask) * hsw;
         DUINT* d = td;
         unsigned n = nn;
@@ -294,7 +296,7 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
 
         v += step;
         td += hdw;
-    }
+    } while (--i > 0);
 
 #undef DO_PIXEL
 }
@@ -305,13 +307,13 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
         do { \
             DUINT *d = td + 1, b; \
             const DUINT *s = ts; \
-            j = hw; \
+            j = hw>>2; \
             do { \
-                b = *s++; DSWAP_BYTE(b); *--d = b; j--; \
-                b = *s++; DSWAP_BYTE(b); *--d = b; j--; \
-                b = *s++; DSWAP_BYTE(b); *--d = b; j--; \
-                b = *s++; DSWAP_BYTE(b); *--d = b; j--; \
-            } while(j > 0); \
+                b = *s++; DSWAP_BYTE(b); *--d = b; \
+                b = *s++; DSWAP_BYTE(b); *--d = b; \
+                b = *s++; DSWAP_BYTE(b); *--d = b; \
+                b = *s++; DSWAP_BYTE(b); *--d = b; \
+            } while(--j > 0); \
             ts += hsw; \
             td += hdw; \
         } while (--i > 0); \
@@ -367,7 +369,8 @@ void DFUNC(_sprite8_flip1)(DUINT* fb, drawsprcmd_t* cmd)
         nn = (count + 3) >> 2;
         count &= 3;
 
-        for (i = h; i > 0; i--) {
+        i = h;
+        do {
             uint16_t* d = (uint16_t*)(td);
             const uint16_t* s = (const uint16_t*)ts;
             uint32_t sp;
@@ -404,7 +407,7 @@ void DFUNC(_sprite8_flip1)(DUINT* fb, drawsprcmd_t* cmd)
             td[-hw + 1] = ts[hw - 1];
             ts += hsw;
             td += hdw;
-        }
+        } while (--i > 0);
 
         return;
     }
@@ -460,7 +463,8 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd)
     step = SH2_DIVU_DVDNTL; // get 32-bit quotient
 
     v = cmd->sy << 16;
-    for (i = h; i > 0; i--) {
+    i = h;
+    do {
         const DUINT* s = ts + ((v >> 16) & vmask) * hsw;
         DUINT* d = td + 1;
         unsigned n = nn;
@@ -489,7 +493,7 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd)
 
         v += step;
         td += hdw;
-    }
+    } while (--i > 0);
 
 #undef DO_PIXEL
 }
