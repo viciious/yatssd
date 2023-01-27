@@ -142,7 +142,7 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
     td = (DUINT*)fb + ((y*canvas_pitch + x) >> DUINT_RSH);
     ts += hsw * cmd->sy + (cmd->sx >> DUINT_RSH);
 
-    if (sizeof(DUINT) == 2 && !(hw & 3) && !((intptr_t)ts & 3) && !((intptr_t)td & 3)) {
+    if (sizeof(DUINT) == 2 && !((hw|(intptr_t)ts|(intptr_t)td) & 3)) {
         PIX_LOOP2();
         return;
     }
@@ -194,9 +194,8 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
             __asm volatile ( \
                 "mov %2, r0\t\n" \
                 "mov.b @(r0,%3), r0\t\n" \
-                "mov %1, %0\t\n" \
                 "braf r0\t\n" \
-                "nop\t\n" \
+                "mov %1, %0\t\n" \
                 : "=&r"(n) : "r"(nn), "r"(count), "r"(jumptbl) : "r0" );
 draw_pixels:
             DO_PIXEL();
@@ -303,10 +302,11 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
 
 #define PIX_LOOP_UNROLL4()  do { \
         unsigned i, j; \
+        const DUINT *s = ts; \
+        const int is = hsw - hw; \
         i = h; \
         do { \
             DUINT *d = td + 1, b; \
-            const DUINT *s = ts; \
             j = hw>>2; \
             do { \
                 b = *s++; DSWAP_BYTE(b); *--d = b; \
@@ -314,24 +314,25 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
                 b = *s++; DSWAP_BYTE(b); *--d = b; \
                 b = *s++; DSWAP_BYTE(b); *--d = b; \
             } while(--j > 0); \
-            ts += hsw; \
+            s += is; \
             td += hdw; \
         } while (--i > 0); \
     } while (0)
 
 #define PIX_LOOP()  do { \
         unsigned i, j; \
+        const DUINT *s = ts; \
+        const int is = hsw - hw; \
         i = h; \
         do { \
             DUINT *d = td + 1, b; \
-            const DUINT *s = ts; \
             j = hw; \
             do { \
                 b = *s++; \
                 DSWAP_BYTE(b); \
                 *--d = b; \
             } while (--j > 0); \
-            ts += hsw; \
+            s += is; \
             td += hdw; \
         } while (--i > 0); \
     } while (0)
