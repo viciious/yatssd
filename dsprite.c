@@ -3,14 +3,15 @@
 #include "draw.h"
 
 drawsprcmd_t slave_drawsprcmd ATTR_CACHE_ALIGNED;
-drawspr4cmd_t slave_drawspr4cmd ATTR_CACHE_ALIGNED;
 
 static int draw_clipsprite(int x, int y, int w, int h, int sw, int sh,
-    rect_t* cliprect, const uint8_t* data, int flags, fixed_t scale)
+    rect_t* cliprect, const uint8_t* data, int flags, fixed_t scale, 
+    int stide)
     ATTR_DATA_ALIGNED;
 
 static int draw_clipsprite(int x, int y, int w, int h, int sw, int sh,
-    rect_t* cliprect, const uint8_t* data, int flags, fixed_t scale)
+    rect_t* cliprect, const uint8_t* data, int flags, fixed_t scale,
+    int stride)
 {
     drawsprcmd_t cmd, * scmd;
     int hh;
@@ -98,6 +99,7 @@ static int draw_clipsprite(int x, int y, int w, int h, int sw, int sh,
     cmd.sw = sw, cmd.sh = sh;
     cmd.sdata = (void*)data;
     cmd.scale = scale;
+    cmd.stride = stride;
 
     if (h > hh)
     {
@@ -111,6 +113,7 @@ static int draw_clipsprite(int x, int y, int w, int h, int sw, int sh,
         scmd->sw = sw, scmd->sh = sh;
         scmd->sdata = (void*)data;
         scmd->scale = scale;
+        scmd->stride = stride;
 
         MARS_SYS_COMM4 = 2;
     }
@@ -122,19 +125,21 @@ static int draw_clipsprite(int x, int y, int w, int h, int sw, int sh,
     return 1;
 }
 
-int draw_sprite(int x, int y, int w, int h, const uint8_t* data, int flags, fixed_t scale)
+int draw_sprite(int x, int y, int w, int h, int stride, const uint8_t* data, int flags)
 {
+    int clip;
     rect_t cliprect;
 
-    int clip = draw_clip(x, y, w, h, &cliprect);
+    flags &= ~DRAWSPR_SCALE;
+    clip = draw_clip(x, y, w, h, &cliprect);
     if (clip == 2)
         return 0;
 
-    draw_clipsprite(x, y, w, h, w, h, &cliprect, data, flags, scale);
+    draw_clipsprite(x, y, w, h, w, h, &cliprect, data, flags, 0, stride);
     return 1;
 }
 
-void draw_stretch_sprite(int x, int y, int sw, int sh, const uint8_t* data, int flags, fixed_t scale)
+void draw_stretch_sprite(int x, int y, int sw, int sh, int stride, const uint8_t* data, int flags, fixed_t scale)
 {
     int w, h;
     rect_t cliprect;
@@ -149,10 +154,10 @@ void draw_stretch_sprite(int x, int y, int sw, int sh, const uint8_t* data, int 
     if (clip == 2)
         return;
 
-    draw_clipsprite(x, y, w, h, sw, sh, &cliprect, data, flags, scale);
+    draw_clipsprite(x, y, w, h, sw, sh, &cliprect, data, flags, scale, stride);
 }
 
-void draw_pivot_stretch_sprite(int x, int y, int sw, int sh, const uint8_t* data, int flags, fixed_t scale)
+void draw_pivot_stretch_sprite(int x, int y, int sw, int sh, int stride, const uint8_t* data, int flags, fixed_t scale)
 {
     int w, h;
     rect_t cliprect;
@@ -167,5 +172,5 @@ void draw_pivot_stretch_sprite(int x, int y, int sw, int sh, const uint8_t* data
     if (clip == 2)
         return;
 
-    draw_clipsprite(x, y, w, h, sw, sh, &cliprect, data, flags, scale);
+    draw_clipsprite(x, y, w, h, sw, sh, &cliprect, data, flags, scale, stride);
 }

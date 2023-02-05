@@ -185,6 +185,7 @@ static int draw_drawtile(int x, int y, int w, int h,
     cmd.sw = w, cmd.sh = h;
     cmd.sdata = (void*)data;
     cmd.scale = 0;
+    cmd.stride = 0;
     fn(fb, &cmd);
 
     return 1;
@@ -273,7 +274,7 @@ int draw_handle_layercmd(drawtilelayerscmd_t *cmd)
                         const uint8_t* res = reslist[(idx >> 2)];
                         //if (debug) res = reslist[1];
 
-                        draw_sprite(x, y, w, h, res, drawmode | (idx & 3), 1);
+                        draw_sprite(x, y, w, h, 0, res, drawmode | (idx & 3));
                         drawcnt++;
                     }
                     n = get_next_tile();

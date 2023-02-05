@@ -13,15 +13,15 @@ void draw_handle_drawspritecmd(drawsprcmd_t* cmd)
 ATTR_DATA_ALIGNED;
 
 int draw_sprite(int x, int y, int w, int h,
-    const uint8_t* data, int flags, fixed_t scale)
+    int stride, const uint8_t* data, int flags)
     ATTR_DATA_ALIGNED;
 
 void draw_stretch_sprite(int x, int y, int sw, int sh,
-    const uint8_t* data, int flags, fixed_t scale)
+    int stride, const uint8_t* data, int flags, fixed_t scale)
     ATTR_DATA_ALIGNED;
 
 void draw_pivot_stretch_sprite(int x, int y, int sw, int sh,
-    const uint8_t* data, int flags, fixed_t scale)
+    int stride, const uint8_t* data, int flags, fixed_t scale)
     ATTR_DATA_ALIGNED;
 
 void draw_setScissor(int16_t x, int16_t y, int16_t w, int16_t h)

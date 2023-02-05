@@ -78,21 +78,9 @@ typedef struct {
     uint16_t sw, sh;
     uint16_t x, y;
     uint16_t w, h;
+    int16_t stride;
     fixed_t scale;
 } drawsprcmd_t;
-
-typedef struct {
-    void* sdata;
-    uint16_t flags;
-    int16_t sx, sy;
-    uint16_t sw, sh;
-    uint16_t x1, y1;
-    uint16_t x2, y2;
-    uint16_t x3, y3;
-    uint16_t x4, y4;
-    uint16_t w, h;
-    fixed_t scale;
-} drawspr4cmd_t;
 
 typedef struct {
     tilemap_t* tm;

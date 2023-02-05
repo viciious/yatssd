@@ -66,7 +66,7 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd) __attribute__((se
         unsigned i, j; \
         DUINT *d = td; \
         const DUINT *s = ts; \
-        const int is = (hsw-hw), id = (hdw-hw); \
+        const int is = (hss-hw), id = (hdw-hw); \
         i = h; \
         do { \
             j = hw>>2; \
@@ -85,7 +85,7 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd) __attribute__((se
         unsigned i, j; \
         DUINT *d = td; \
         const DUINT *s = ts; \
-        const int is = (hsw-hw), id = (hdw-hw); \
+        const int is = (hss-hw), id = (hdw-hw); \
         i = h; \
         do { \
             j = hw>>2; \
@@ -104,7 +104,7 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd) __attribute__((se
         unsigned i, j; \
         int *d = (int *)td; \
         const int *s = (const int *)ts; \
-        const int is = (hsw-hw)>>1, id = (hdw-hw)>>1; \
+        const int is = (hss-hw)>>1, id = (hdw-hw)>>1; \
         i = h; \
         do { \
             j = hw>>2; \
@@ -120,7 +120,7 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
 {
     DUINT*td;
     const DUINT*ts = (const DUINT*)cmd->sdata;
-    unsigned hw, hsw;
+    unsigned hw, hss;
     int hdw;
     unsigned x = cmd->x, y = cmd->y;
     unsigned w = cmd->w, h = cmd->h;
@@ -129,7 +129,7 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
     if (nodraw) return;
 
     hw = w >> DUINT_RSH;
-    hsw = cmd->sw >> DUINT_RSH;
+    hss = (cmd->stride ? cmd->stride : cmd->sw) >> DUINT_RSH;
     hdw = canvas_pitch >> DUINT_RSH;
     if (hw == 0)
         return;
@@ -140,7 +140,7 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
     }
 
     td = (DUINT*)fb + ((y*canvas_pitch + x) >> DUINT_RSH);
-    ts += hsw * cmd->sy + (cmd->sx >> DUINT_RSH);
+    ts += hss * cmd->sy + (cmd->sx >> DUINT_RSH);
 
     if (sizeof(DUINT) == 2 && !((hw|(intptr_t)ts|(intptr_t)td) & 3)) {
         PIX_LOOP2();
@@ -208,7 +208,7 @@ draw_pixels:
 #undef DO_PIXEL
 #endif
             td[hw - 1] = ts[hw - 1];
-            ts += hsw;
+            ts += hss;
             td += hdw;
         } while (--i > 0);
 
@@ -230,7 +230,7 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
     unsigned i, nn;
     DUINT*td;
     const DUINT*ts = (const DUINT*)cmd->sdata;
-    unsigned hw, hsw;
+    unsigned hw, hss, hsw;
     unsigned step;
     unsigned u, v;
     unsigned umask, vmask, ustart;
@@ -245,6 +245,7 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
     SH2_DIVU_DVDNTL = 0;   // set low  bits of the 64-bit dividend, start divide
 
     hw = cmd->w >> DUINT_RSH;
+    hss = (cmd->stride ? cmd->stride : cmd->sw) >> DUINT_RSH;
     hsw = cmd->sw >> DUINT_RSH;
     hdw = canvas_pitch >> DUINT_RSH;
     nn = (hw + 3) >> 2;
@@ -267,7 +268,7 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
     v = cmd->sy << 16;
     i = h;
     do {
-        const DUINT* s = ts + ((v >> 16) & vmask) * hsw;
+        const DUINT* s = ts + ((v >> 16) & vmask) * hss;
         DUINT* d = td;
         unsigned n = nn;
 
@@ -303,7 +304,7 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
 #define PIX_LOOP_UNROLL4()  do { \
         unsigned i, j; \
         const DUINT *s = ts; \
-        const int is = hsw - hw; \
+        const int is = hss - hw; \
         i = h; \
         do { \
             DUINT *d = td + 1, b; \
@@ -322,7 +323,7 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
 #define PIX_LOOP()  do { \
         unsigned i, j; \
         const DUINT *s = ts; \
-        const int is = hsw - hw; \
+        const int is = hss - hw; \
         i = h; \
         do { \
             DUINT *d = td + 1, b; \
@@ -341,7 +342,7 @@ void DFUNC(_sprite8_flip1)(DUINT* fb, drawsprcmd_t* cmd)
 {
     DUINT* td;
     const DUINT* ts = (const DUINT*)cmd->sdata;
-    unsigned hw, hsw;
+    unsigned hw, hss;
     int hdw;
     unsigned x = cmd->x, y = cmd->y;
     unsigned w = cmd->w, h = cmd->h;
@@ -349,7 +350,7 @@ void DFUNC(_sprite8_flip1)(DUINT* fb, drawsprcmd_t* cmd)
     if (nodraw) return;
 
     hw = cmd->w >> DUINT_RSH;
-    hsw = cmd->sw >> DUINT_RSH;
+    hss = (cmd->stride ? cmd->stride : cmd->sw) >> DUINT_RSH;
     hdw = canvas_pitch >> DUINT_RSH;
     if (hw == 0)
         return;
@@ -361,7 +362,7 @@ void DFUNC(_sprite8_flip1)(DUINT* fb, drawsprcmd_t* cmd)
 
     x = x + w - 1;
     td = (DUINT*)fb + ((y * canvas_pitch + x) >> DUINT_RSH);
-    ts += hsw * cmd->sy + (cmd->sx >> DUINT_RSH);
+    ts += hss * cmd->sy + (cmd->sx >> DUINT_RSH);
 
     if (sizeof(DUINT) == 1 && !(x & 1) && (w > 3) && !(cmd->sx & 1) && (cmd->flags & DRAWSPR_OVERWRITE)) {
         unsigned i, count, nn;
@@ -406,7 +407,7 @@ void DFUNC(_sprite8_flip1)(DUINT* fb, drawsprcmd_t* cmd)
 #undef DO_PIXEL
 
             td[-hw + 1] = ts[hw - 1];
-            ts += hsw;
+            ts += hss;
             td += hdw;
         } while (--i > 0);
 
@@ -428,7 +429,7 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd)
     unsigned i, nn;
     DUINT*td;
     const DUINT*ts = (const DUINT*)cmd->sdata;
-    unsigned hw, hsw;
+    unsigned hw, hss, hsw;
     unsigned step;
     unsigned u, v;
     unsigned umask, vmask, ustart;
@@ -443,6 +444,7 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd)
     SH2_DIVU_DVDNTL = 0;   // set low  bits of the 64-bit dividend, start divide
 
     hw = cmd->w >> DUINT_RSH;
+    hss = (cmd->stride ? cmd->stride : cmd->sw) >> DUINT_RSH;
     hsw = cmd->sw >> DUINT_RSH;
     hdw = canvas_pitch >> DUINT_RSH;
     nn = (hw + 3) >> 2;
@@ -466,7 +468,7 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd)
     v = cmd->sy << 16;
     i = h;
     do {
-        const DUINT* s = ts + ((v >> 16) & vmask) * hsw;
+        const DUINT* s = ts + ((v >> 16) & vmask) * hss;
         DUINT* d = td + 1;
         unsigned n = nn;
 
