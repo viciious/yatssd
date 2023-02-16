@@ -64,11 +64,11 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd) __attribute__((se
 
 #define PIX_LOOP_UNROLL4() do { \
         unsigned i, j; \
-        DUINT *d = td; \
-        const DUINT *s = ts; \
-        const int is = (hss-hw), id = (hdw-hw); \
+        const int is = hss, id = hdw; \
         i = h; \
         do { \
+            DUINT *d = td; \
+            const DUINT *s = ts; \
             j = hw>>2; \
             do { \
                 *d++ = *s++; \
@@ -76,18 +76,19 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd) __attribute__((se
                 *d++ = *s++; \
                 *d++ = *s++; \
             } while(--j > 0); \
-            s += is; \
-            d += id; \
+            ts += is; \
+            td += id; \
         } while (--i > 0); \
     } while (0)
 
 #define PIX_LOOP() do { \
         unsigned i, j; \
-        DUINT *d = td; \
-        const DUINT *s = ts; \
-        const int is = (hss-hw), id = (hdw-hw); \
+        const int is = hss, id = hdw; \
         i = h; \
         do { \
+            DUINT *d = td; \
+            const DUINT *s = ts; \
+            const int k = hw & 3; \
             j = hw>>2; \
             do { \
                 *d++ = *s++; \
@@ -95,24 +96,28 @@ void DFUNC(_sprite8_scale_flip1)(DUINT* fb, drawsprcmd_t* cmd) __attribute__((se
                 *d++ = *s++; \
                 *d++ = *s++; \
             } while(--j > 0); \
-            s += is; \
-            d += id; \
+            j = k; \
+            do { \
+                *d++ = *s++; \
+            } while (--j > 0); \
+            ts += is; \
+            td += id; \
         } while (--i > 0); \
     } while (0)
 
 #define PIX_LOOP2() do { \
         unsigned i, j; \
-        int *d = (int *)td; \
-        const int *s = (const int *)ts; \
-        const int is = (hss-hw)>>1, id = (hdw-hw)>>1; \
+        const int is = hss, id = hdw; \
         i = h; \
         do { \
+            int *d = (int *)td; \
+            const int *s = (const int *)ts; \
             j = hw>>2; \
             do { \
                 *d++ = *s++, *d++ = *s++; \
             } while(--j > 0); \
-            s += is; \
-            d += id; \
+            ts += is; \
+            td += id; \
         } while (--i > 0);\
     } while (0)
 
@@ -303,10 +308,9 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
 
 #define PIX_LOOP_UNROLL4()  do { \
         unsigned i, j; \
-        const DUINT *s = ts; \
-        const int is = hss - hw; \
         i = h; \
         do { \
+            const DUINT *s = ts; \
             DUINT *d = td + 1, b; \
             j = hw>>2; \
             do { \
@@ -315,17 +319,16 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
                 b = *s++; DSWAP_BYTE(b); *--d = b; \
                 b = *s++; DSWAP_BYTE(b); *--d = b; \
             } while(--j > 0); \
-            s += is; \
+            ts += hss; \
             td += hdw; \
         } while (--i > 0); \
     } while (0)
 
 #define PIX_LOOP()  do { \
         unsigned i, j; \
-        const DUINT *s = ts; \
-        const int is = hss - hw; \
         i = h; \
         do { \
+            const DUINT *s = ts; \
             DUINT *d = td + 1, b; \
             j = hw; \
             do { \
@@ -333,7 +336,7 @@ void DFUNC(_sprite8_scale_flip0or2)(DUINT *fb, drawsprcmd_t *cmd)
                 DSWAP_BYTE(b); \
                 *--d = b; \
             } while (--j > 0); \
-            s += is; \
+            ts += hss; \
             td += hdw; \
         } while (--i > 0); \
     } while (0)
