@@ -129,7 +129,7 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
     int hdw;
     unsigned x = cmd->x, y = cmd->y;
     unsigned w = cmd->w, h = cmd->h;
-    char jumptbl[] = { 0, 42, 28, 14 }; // Duff's device jump table, 7 instr per case
+    char jumptbl[] = { 0, 48, 32, 16 }; // Duff's device jump table, 8 instr per case
 
     if (nodraw) return;
 
@@ -177,6 +177,7 @@ void DFUNC(_sprite8_flip0or2)(DUINT * fb, drawsprcmd_t * cmd)
                 "mov.w r0, @%1\t\n" \
                 "add #2, %1\t\n" \
                 "mov.w @%2+, r0\t\n" \
+                "extu.w r0, r0\t\n" \
                 "shll16 %0\t\n" \
                 "shll8 r0\t\n" \
                 "or r0, %0\t\n" \
@@ -393,6 +394,7 @@ void DFUNC(_sprite8_flip1)(DUINT* fb, drawsprcmd_t* cmd)
                 "swap.b r0, r0\t\n" \
                 "mov.w r0, @-%1\t\n" \
                 "mov.w @%2+, r0\t\n" \
+                "extu.w r0, r0\t\n" \
                 "shll16 %0\t\n" \
                 "shll8 r0\t\n" \
                 "or r0, %0\t\n" \
